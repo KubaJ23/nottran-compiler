@@ -1,9 +1,9 @@
-package uk.ac.nott.cs.comp3012.coursework.ast.programUnit;
+package uk.ac.nott.cs.comp3012.coursework.ast.topLevel;
 
 import org.antlr.v4.runtime.Token;
 import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
-import uk.ac.nott.cs.comp3012.coursework.ast.VariableDecl;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.AstVisitor;
+import uk.ac.nott.cs.comp3012.coursework.ast.type.VariableDecl;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 
 import java.util.List; /**
  * A 'type' definition block.

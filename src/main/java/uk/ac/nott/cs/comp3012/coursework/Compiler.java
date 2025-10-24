@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.Ast;
+import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 
 /**
  * Base class for a compiler.

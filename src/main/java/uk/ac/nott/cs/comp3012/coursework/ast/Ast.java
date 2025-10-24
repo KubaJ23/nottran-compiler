@@ -1,4 +1,4 @@
-package uk.ac.nott.cs.comp3012.coursework.ast.interfaces;
+package uk.ac.nott.cs.comp3012.coursework.ast;
 
 import org.antlr.v4.runtime.Token;
 

@@ -1,6 +1,6 @@
 package uk.ac.nott.cs.comp3012.coursework;
 
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.Ast;
+import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 
 public class Backend implements Compiler.Backend{
     @Override

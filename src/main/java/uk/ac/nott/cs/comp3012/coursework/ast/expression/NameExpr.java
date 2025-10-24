@@ -2,7 +2,7 @@ package uk.ac.nott.cs.comp3012.coursework.ast.expression;
 
 import org.antlr.v4.runtime.Token;
 import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.AstVisitor;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 
 /**
  * A variable name used as an expression.

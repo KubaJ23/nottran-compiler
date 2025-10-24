@@ -1,10 +1,10 @@
-package uk.ac.nott.cs.comp3012.coursework.ast.interfaces;
+package uk.ac.nott.cs.comp3012.coursework.ast;
 
-import uk.ac.nott.cs.comp3012.coursework.ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.literal.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.programUnit.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.topLevel.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.statement.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.type.*;
 
 /**
  * Visitor interface for traversing the AST.

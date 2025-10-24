@@ -1,8 +1,8 @@
-package uk.ac.nott.cs.comp3012.coursework.ast;
+package uk.ac.nott.cs.comp3012.coursework.ast.type;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.AstVisitor;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 
 // --- Dimensions ---
 public class LiteralDim extends AbstractAstNode implements Dimension {

@@ -3,7 +3,7 @@ package uk.ac.nott.cs.comp3012.coursework;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.Ast;
+import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 
 public class Frontend implements Compiler.Frontend {
     @Override

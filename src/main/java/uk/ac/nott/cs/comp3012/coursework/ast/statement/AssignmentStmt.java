@@ -2,7 +2,7 @@ package uk.ac.nott.cs.comp3012.coursework.ast.statement;
 
 import org.antlr.v4.runtime.Token;
 import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.AstVisitor;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 import uk.ac.nott.cs.comp3012.coursework.ast.expression.Expression;
 
 public class AssignmentStmt extends AbstractAstNode implements Statement {

@@ -2,7 +2,7 @@ package uk.ac.nott.cs.comp3012.coursework.ast.expression;
 
 import org.antlr.v4.runtime.Token;
 import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
-import uk.ac.nott.cs.comp3012.coursework.ast.interfaces.AstVisitor;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 
 import java.util.List; /**
  * A function call OR an array index, e.g., 'a(1)' or 'f(x)'.
