@@ -1,0 +1,59 @@
+package uk.ac.nott.cs.comp3012.coursework.ast.interfaces;
+
+import uk.ac.nott.cs.comp3012.coursework.ast.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.expression.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.literal.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.programUnit.*;
+import uk.ac.nott.cs.comp3012.coursework.ast.statement.*;
+
+/**
+ * Visitor interface for traversing the AST.
+ * Uses the visitor pattern to define operations on the AST.
+ *
+ * @param <T> The return type of the visit methods.
+ */
+public interface AstVisitor<T> {
+    // Top-Level
+    T visit(CompilationUnit node);
+    T visit(ProgramDecl node);
+    T visit(FunctionDecl node);
+    T visit(SubroutineDecl node);
+    T visit(DerivedTypeDecl node);
+
+    // Declarations
+    T visit(VariableDecl node);
+    T visit(IntegerType node);
+    T visit(RealType node);
+    T visit(CharType node);
+    T visit(LogicalType node);
+    T visit(DerivedType node);
+    T visit(LiteralDim node);
+    T visit(PointerDim node);
+
+    // Statements
+    T visit(AssignmentStmt node);
+    T visit(CallStmt node);
+    T visit(IfSimpleStmt node);
+    T visit(IfThenElseStmt node);
+    T visit(DoLoopStmt node);
+    T visit(DoWhileStmt node);
+    T visit(ReadStmt node);
+    T visit(WriteStmt node);
+    T visit(AllocateStmt node);
+    T visit(DeallocateStmt node);
+
+    // Expressions
+    T visit(BinaryOpExpr node);
+    T visit(UnaryOpExpr node);
+    T visit(FieldAccessExpr node);
+    T visit(CallOrIndexExpr node);
+    T visit(ParenExpr node);
+    T visit(NameExpr node);
+
+    // Literals
+    T visit(IntLiteral node);
+    T visit(RealLiteral node);
+    T visit(LogicalLiteral node);
+    T visit(CharLiteral node);
+    T visit(BozLiteral node);
+}

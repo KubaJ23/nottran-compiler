@@ -1,0 +1,62 @@
+function read_matrix() result(m)
+    integer(3,3) :: m
+    integer :: i, j
+    write "Enter 3x3 matrix values:"
+    do i = 0, 3
+        do j = 0, 3
+            read m(i,j)
+        end do
+    end do
+end function read_matrix
+
+function is_identity(m)
+    integer(3,3) :: m
+    logical :: is_identity
+    is_identity =
+    m(0,0) == 1 .and. m(0,1) == 0 .and. m(0,2) == 0 .and.
+    m(1,0) == 0 .and. m(1,1) == 1 .and. m(1,2) == 0 .and.
+    m(2,0) == 0 .and. m(2,1) == 0 .and. m(2,2) == 1
+end function is_identity
+
+subroutine write_matrix(m)
+    integer(3,3) :: m
+    integer :: i, j
+    write "Showing dot product of two 3x3 matrices:"
+    do i = 0, 3
+        do j = 0, 3
+            write m(i,j)
+        end do
+    end do
+end subroutine write_matrix
+
+function dot(a, b) result (c)
+    integer(3,3) :: a, b, c
+    integer :: i, j, i1, j1
+    do i = 0, 3
+        do j = 0, 3
+            i1 = 0
+            j1 = 0
+            do while (i1 < 3 .and. j1 < 3)
+                c(i,j) = a(i,j1) * b(i1,j)
+                i1 = i1 + 1
+                j1 = j1 + 1
+            end do
+        end do
+    end do
+end function dot
+
+program dot_product
+    integer(3,3) :: a, b, c
+    a = read_matrix()
+    b = read_matrix()
+    if (is_identity(a)) then
+        c = b
+    else
+        if (is_identity(b)) then
+            c = a
+        else
+            c = dot(a, b)
+        end if
+    end if
+    call write_matrix(c)
+end program dot_product
