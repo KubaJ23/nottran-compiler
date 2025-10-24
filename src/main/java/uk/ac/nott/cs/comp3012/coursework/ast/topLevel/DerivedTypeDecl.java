@@ -1,24 +1,12 @@
 package uk.ac.nott.cs.comp3012.coursework.ast.topLevel;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
-import uk.ac.nott.cs.comp3012.coursework.ast.type.VariableDecl;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
+import uk.ac.nott.cs.comp3012.coursework.ast.type.VariableDecl;
 
-import java.util.List; /**
- * A 'type' definition block.
- * Corresponds to 'derivedTypeDeclaration'.
- */
-public class DerivedTypeDecl extends AbstractAstNode implements ProgramUnit {
-    public final String name;
-    public final List<VariableDecl> fields;
+import java.util.List;
 
-    public DerivedTypeDecl(Token startToken, String name, List<VariableDecl> fields) {
-        super(startToken);
-        this.name = name;
-        this.fields = List.copyOf(fields);
-    }
-
+public record DerivedTypeDecl(Token startToken, String name, List<VariableDecl> fields) implements ProgramUnit {
     @Override
     public <T> T accept(AstVisitor<T> visitor) {
         return visitor.visit(this);

@@ -1,5 +1,10 @@
 package uk.ac.nott.cs.comp3012.coursework.ast.type;
 
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
+public sealed interface Dimension permits Dimension.LiteralDim, Dimension.PointerDim {
+    record LiteralDim(int size) implements Dimension {
+    }
 
-public interface Dimension extends Ast {}
+    record PointerDim() implements Dimension {
+    }
+}
+

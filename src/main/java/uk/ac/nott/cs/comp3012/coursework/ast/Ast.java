@@ -11,7 +11,7 @@ public interface Ast {
     /**
      * @return The starting ANTLR token, used for error reporting (line/column).
      */
-    Token getStartToken();
+    Token startToken();
 
     /**
      * Accepts a visitor.

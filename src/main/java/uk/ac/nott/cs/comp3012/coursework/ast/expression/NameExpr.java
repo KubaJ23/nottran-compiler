@@ -1,20 +1,11 @@
 package uk.ac.nott.cs.comp3012.coursework.ast.expression;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.ast.AbstractAstNode;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstVisitor;
 
-/**
- * A variable name used as an expression.
- * Corresponds to 'atom #NameExpr'.
- */
-public class NameExpr extends AbstractAstNode implements Expression {
-    public final String name;
-
-    public NameExpr(Token startToken, String name) {
-        super(startToken);
-        this.name = name;
+public record NameExpr(Token startToken, String name) implements Expression {
+    @Override
+    public <T> T accept(AstVisitor<T> v) {
+        return v.visit(this);
     }
-
-    @Override public <T> T accept(AstVisitor<T> v) { return v.visit(this); }
 }
