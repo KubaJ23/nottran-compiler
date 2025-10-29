@@ -9,25 +9,25 @@ compilationUnit
     ;
 
 programUnit
-    : functionDeclaration  # FunctionDecl
+    : functionDeclaration   # FunctionDecl
     | subroutineDeclaration # SubroutineDecl
     | derivedTypeDeclaration # DerivedTypeDecl
     ;
 
 programDeclaration
-    : PROGRAM NAME declarationBlock? statementBlock END PROGRAM NAME
+    : PROGRAM name=NAME declarationBlock? statementBlock END PROGRAM endName=NAME
     ;
 
 functionDeclaration
-    : FUNCTION NAME LPAREN nameList? RPAREN (RESULT LPAREN NAME RPAREN)? declarationBlock? statementBlock END FUNCTION NAME
+    : FUNCTION name=NAME LPAREN nameList? RPAREN (RESULT LPAREN result=NAME RPAREN)? declarationBlock? statementBlock END FUNCTION endName=NAME
     ;
 
 subroutineDeclaration
-    : SUBROUTINE NAME LPAREN nameList? RPAREN declarationBlock? statementBlock END SUBROUTINE NAME
+    : SUBROUTINE name=NAME LPAREN nameList? RPAREN declarationBlock? statementBlock END SUBROUTINE endName=NAME
     ;
 
 derivedTypeDeclaration
-    : TYPE NAME derivedTypeDeclBlock? END TYPE NAME
+    : TYPE name=NAME derivedTypeDeclBlock? END TYPE endName=NAME
     ;
 
 // ---------------------------
@@ -35,7 +35,7 @@ derivedTypeDeclaration
 // ---------------------------
 
 declarationBlock
-    : variableDecl+
+    : decls+=variableDecl+
     ;
 
 variableDecl
@@ -43,7 +43,7 @@ variableDecl
     ;
 
 derivedTypeDeclBlock
-    : derivedTypeVarDecl+
+    : fields+=derivedTypeVarDecl+
     ;
 
 derivedTypeVarDecl
@@ -67,12 +67,12 @@ dimList
     ;
 
 dim
-    : INT_LITERAL // For fixed-size array e.g. integer(10)
-    | STAR        // For pointer array dimension e.g. integer(*)
+    : INT_LITERAL
+    | STAR
     ;
 
 nameList
-    : NAME (COMMA NAME)*
+    : names+=NAME (COMMA names+=NAME)*
     ;
 
 // ---------------------------
@@ -80,7 +80,7 @@ nameList
 // ---------------------------
 
 statementBlock
-    : statement+ // Can not be empty
+    : stmts+=statement+
     ;
 
 statement
@@ -97,7 +97,7 @@ statement
     ;
 
 assignmentStmt
-    : postfixExpr ASSIGN expr // validate semantically for lvalue
+    : lvalue=postfixExpr ASSIGN rvalue=expr
     ;
 
 callStmt
@@ -109,11 +109,11 @@ ifSimpleStmt
     ;
 
 ifThenElseStmt
-    : IF LPAREN expr RPAREN THEN statementBlock (ELSE statementBlock)? END IF
+    : IF LPAREN cond=expr RPAREN THEN thenBlock=statementBlock (ELSE elseBlock=statementBlock)? END IF
     ;
 
 doLoopStmt
-    : DO NAME ASSIGN expr COMMA expr (COMMA expr)? statementBlock END DO
+    : DO loopVar=NAME ASSIGN start=expr COMMA end=expr (COMMA step=expr)? statementBlock END DO
     ;
 
 doWhileLoopStmt
@@ -121,11 +121,11 @@ doWhileLoopStmt
     ;
 
 readStmt
-    : READ postfixExpr (COMMA postfixExpr)* // sus
+    : READ lval+=postfixExpr (COMMA lval+=postfixExpr)*
     ;
 
 writeStmt
-    : WRITE exprList // Write takes expressions
+    : WRITE exprList
     ;
 
 allocateStmt
@@ -141,7 +141,7 @@ deallocateStmt
 // ---------------------------
 
 exprList
-    : expr (COMMA expr)*
+    : exprs+=expr (COMMA exprs+=expr)*
     ;
 
 expr
@@ -149,40 +149,40 @@ expr
     ;
 
 orExpr
-    : andExpr (OR_OP andExpr)*
+    : left=andExpr (op=OR_OP right=andExpr)*
     ;
 
 andExpr
-    : relExpr (AND_OP relExpr)*
+    : left=relExpr (op=AND_OP right=relExpr)*
     ;
 
 relExpr
-    : concatExpr (relOp concatExpr)*
+    : left=concatExpr (op=relOp right=concatExpr)*
     ;
 
 concatExpr
-    : addExpr (CONCAT addExpr)*
+    : left=addExpr (op=CONCAT right=addExpr)*
     ;
 
 addExpr
-    : mulExpr ((PLUS | MINUS) mulExpr)*
+    : left=mulExpr (op=(PLUS | MINUS) right=mulExpr)*
     ;
 
 mulExpr
-    : powExpr ((STAR | SLASH) powExpr)*
+    : left=powExpr (op=(STAR | SLASH) right=powExpr)*
     ;
 
 powExpr
-    : postfixExpr (EXP powExpr)?
+    : base=postfixExpr (op=EXP exponent=powExpr)?
     ;
 
 postfixExpr
-    : atom postfixSuffix*
+    : base=atom suffixes+=postfixSuffix*
     ;
 
 postfixSuffix
-    : PERCENT NAME                    # FieldAccess
-    | LPAREN exprList? RPAREN         # CallOrIndex
+    : PERCENT field=NAME                # FieldAccess
+    | LPAREN args=exprList? RPAREN    # CallOrIndex
     ;
 
 atom
@@ -210,7 +210,6 @@ literal
 // Lexer
 // ---------------------------
 
-// Keywords
 ALLOCATE    : 'allocate';
 CALL        : 'call';
 CHARACTER   : 'character';
@@ -233,17 +232,13 @@ TYPE        : 'type';
 WHILE       : 'while';
 WRITE       : 'write';
 
-// ---------------------------
-// Operators & Special Symbols
-// ---------------------------
 PLUS        : '+';
 MINUS       : '-';
 STAR        : '*';
 SLASH       : '/';
 EXP         : '**';
-CONCAT      : '//'; // sus
+CONCAT      : '//';
 
-// Relational operators (two forms)
 LT          : '<';
 LE          : '<=';
 GT          : '>';
@@ -258,11 +253,9 @@ GE_TEXT     : '.ge.';
 EQ_TEXT     : '.eq.';
 NE_TEXT     : '.neq.';
 
-// Logical operators
 AND_OP      : '.and.';
 OR_OP       : '.or.';
 
-// Assignment & punctuation
 ASSIGN      : '=';
 COMMA       : ',';
 COLONCOLON  : '::';
@@ -273,7 +266,7 @@ PERCENT     : '%';
 
 CHAR_LITERAL: '"' ( '""' | PRINTABLE_CHARS_NO_DOUBLE_QUOTE)* '"';
 
-fragment PRINTABLE_CHARS_NO_DOUBLE_QUOTE: [\u0009\u0020-\u0021\u0023-\u007E]; // ASCII 32–33 and 35–126 and ASCII 9 = horizontal tab
+fragment PRINTABLE_CHARS_NO_DOUBLE_QUOTE: [\u0009\u0020-\u0021\u0023-\u007E];
 
 LOGICAL_LITERAL: '.true.' | '.false.';
 
@@ -299,6 +292,6 @@ fragment LETTER: [a-z];
 
 LINE_COMMENT: '!' PRINTABLE_COMMENT_CHARS* -> skip;
 
-fragment PRINTABLE_COMMENT_CHARS: [\u0009\u0020-\u007E];   // ASCII 9 (tab), 32–126 (printable)
+fragment PRINTABLE_COMMENT_CHARS: [\u0009\u0020-\u007E];
 
 WS: [ \t\r\n]+ -> skip;
