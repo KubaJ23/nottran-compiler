@@ -4,6 +4,8 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstBuilder;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstBuilderVisitor;
 
 public class Frontend implements Compiler.Frontend {
     @Override
@@ -11,9 +13,10 @@ public class Frontend implements Compiler.Frontend {
         NottscriptLexer lexer = new NottscriptLexer(CharStreams.fromString(programText));
         TokenStream tokenStream = new CommonTokenStream(lexer);
         NottscriptParser parser = new NottscriptParser(tokenStream);
-//
-//        NottscriptParser.CompilationUnitContext fileContext = parser.compilationUnit();
-//        System.out.println(fileContext.programDecl().declarationBlock().variableDecl());
+
+        NottscriptParser.CompilationUnitContext fileContext = parser.compilationUnit();
+
+        Ast ast = fileContext.accept(new AstBuilder());
 
         return null;
     }
