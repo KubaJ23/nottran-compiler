@@ -93,7 +93,11 @@ public sealed interface Ast {
 
         record NameExpr(Token startToken, String name) implements Expression {}
 
-        record BinaryOpExpr(Token startToken, Expression left, Token operator, Expression right) implements Expression {}
+        record BinaryOpExpr(Token startToken, Expression left, BinaryOp operator, Expression right) implements Expression {
+            public enum BinaryOp {
+                ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER, CONCAT, EQUAL, NOT_EQUAL, LESS_THAN, LESS_EQUAL, GREATER_THAN, GREATER_EQUAL, AND, OR
+            }
+        }
 
         record CallOrIndexExpr(Token startToken, Expression base, List<Expression> arguments) implements Expression {}
     }

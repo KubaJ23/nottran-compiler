@@ -97,7 +97,7 @@ statement
     ;
 
 assignmentStmt
-    : lvalue=postfixExpr ASSIGN rvalue=expr
+    : lvalue=expr ASSIGN rvalue=expr
     ;
 
 callStmt
@@ -121,7 +121,7 @@ doWhileLoopStmt
     ;
 
 readStmt
-    : READ lval+=postfixExpr (COMMA lval+=postfixExpr)*
+    : READ lval+=expr (COMMA lval+=expr)*
     ;
 
 writeStmt
@@ -144,45 +144,64 @@ exprList
     : exprs+=expr (COMMA exprs+=expr)*
     ;
 
+//expr
+//    : orExpr
+//    ;
+//
+//orExpr
+//    : left=andExpr (OR_OP right+=andExpr)*
+//    ;
+//
+//andExpr
+//    : left=relExpr (AND_OP right+=relExpr)*
+//    ;
+//
+//relExpr
+//    : left=concatExpr (op+=relOp right+=concatExpr)*
+//    ;
+//
+//concatExpr
+//    : left=addExpr (CONCAT right+=addExpr)*
+//    ;
+//
+//addExpr
+//    : left=mulExpr (op+=(PLUS | MINUS) right+=mulExpr)*
+//    ;
+//
+//mulExpr
+//    : left=powExpr (op+=(STAR | SLASH) right+=powExpr)*
+//    ;
+//
+//powExpr
+//    : base=postfixExpr (EXP exponent=powExpr)?
+//    ;
+//
+//postfixExpr
+//    : base=atom suffixes+=postfixSuffix*
+//    ;
+//
+//postfixSuffix
+//    : PERCENT field=NAME                # FieldAccess
+//    | LPAREN args=exprList? RPAREN    # CallOrIndex
+//    ;
+//
+//atom
+//    : LPAREN expr RPAREN              # ParenExpr
+//    | literal                         # LiteralExpr
+//    | NAME                            # NameExpr
+//    ;
+
 expr
-    : orExpr
-    ;
-
-orExpr
-    : left=andExpr (op=OR_OP right=andExpr)*
-    ;
-
-andExpr
-    : left=relExpr (op=AND_OP right=relExpr)*
-    ;
-
-relExpr
-    : left=concatExpr (op=relOp right=concatExpr)*
-    ;
-
-concatExpr
-    : left=addExpr (op=CONCAT right=addExpr)*
-    ;
-
-addExpr
-    : left=mulExpr (op=(PLUS | MINUS) right=mulExpr)*
-    ;
-
-mulExpr
-    : left=powExpr (op=(STAR | SLASH) right=powExpr)*
-    ;
-
-powExpr
-    : base=postfixExpr (op=EXP exponent=powExpr)?
-    ;
-
-postfixExpr
-    : base=atom suffixes+=postfixSuffix*
-    ;
-
-postfixSuffix
-    : PERCENT field=NAME                # FieldAccess
-    | LPAREN args=exprList? RPAREN    # CallOrIndex
+    : <assoc=left>  left=expr OR_OP right=expr         # OrExpr
+    | <assoc=left>  left=expr AND_OP right=expr        # AndExpr
+    | <assoc=left>  left=expr op=relOp right=expr         # RelExpr
+    | <assoc=left>  left=expr op=CONCAT right=expr        # ConcatExpr
+    | <assoc=left>  left=expr op=(PLUS | MINUS) right=expr # AddExpr
+    | <assoc=left>  left=expr op=(STAR | SLASH) right=expr # MulExpr
+    | <assoc=right> base=expr EXP exponent=expr      # PowExpr
+    | <assoc=left>  base=expr PERCENT field=NAME        # FieldAccess
+    | <assoc=left>  base=expr LPAREN args=exprList? RPAREN # CallOrIndex
+    | atom                                            # AtomBase
     ;
 
 atom
@@ -197,13 +216,13 @@ relOp
     ;
 
 literal
-    : INT_LITERAL
-    | REAL_LITERAL
-    | B_LITERAL
-    | O_LITERAL
-    | Z_LITERAL
-    | LOGICAL_LITERAL
-    | CHAR_LITERAL
+    : INT_LITERAL     # IntLit
+    | REAL_LITERAL    # RealLit
+    | B_LITERAL       # BozLitB
+    | O_LITERAL       # BozLitO
+    | Z_LITERAL       # BozLitZ
+    | LOGICAL_LITERAL # LogicalLit
+    | CHAR_LITERAL    # CharLit
     ;
 
 // ---------------------------

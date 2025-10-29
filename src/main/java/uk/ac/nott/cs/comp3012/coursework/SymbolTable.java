@@ -5,5 +5,5 @@ import java.util.Map;
 public class SymbolTable {
     private SymbolTable parent;
     private Map<String, SymbolTable> scopes;
-    private Map<String, > symbols;
+    private Map<String, String> symbols;
 }
