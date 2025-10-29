@@ -41,7 +41,10 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
 
-        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
+        List<VariableDecl> decls = (ctx.declarationBlock() != null)
+                ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class)
+                : Collections.emptyList();
+
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
         return new ProgramDecl(ctx.start, name, decls, stmts);
     }
@@ -55,7 +58,10 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
         String resultName = (ctx.result != null) ? ctx.result.getText() : null;
 
-        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
+        List<VariableDecl> decls = (ctx.declarationBlock() != null)
+                ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class)
+                : Collections.emptyList();
+
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
 
         return new FunctionDecl(ctx.start, name, params, resultName, decls, stmts);
@@ -67,7 +73,11 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
         List<String> params = visitANameList(ctx.nameList());
-        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
+
+        List<VariableDecl> decls = (ctx.declarationBlock() != null)
+                ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class)
+                : Collections.emptyList();
+
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
         return new SubroutineDecl(ctx.start, name, params, decls, stmts);
     }
@@ -77,7 +87,11 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String name = ctx.name.getText();
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
-        List<VariableDecl> fields = visitAndMap(ctx.derivedTypeDeclBlock().fields, VariableDecl.class);
+
+        List<VariableDecl> fields = (ctx.derivedTypeDeclBlock() != null)
+                ? visitAndMap(ctx.derivedTypeDeclBlock().fields, VariableDecl.class)
+                : Collections.emptyList();
+
         return new DerivedTypeDecl(ctx.start, name, fields);
     }
 
@@ -145,7 +159,11 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     @Override
     public Ast visitCallStmt(NottscriptParser.CallStmtContext ctx) {
         String name = ctx.NAME().getText();
-        List<Expression> args = visitAndMap(ctx.exprList().exprs, Expression.class);
+
+        List<Expression> args = (ctx.exprList() != null)
+                ? visitAndMap(ctx.exprList().exprs, Expression.class)
+                : Collections.emptyList();
+
         return new CallStmt(ctx.start, name, args);
     }
 
@@ -160,7 +178,11 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitIfThenElseStmt(NottscriptParser.IfThenElseStmtContext ctx) {
         Expression condition = (Expression) visit(ctx.cond);
         List<Statement> thenBlock = visitAndMap(ctx.thenBlock.stmts, Statement.class);
-        List<Statement> elseBlock = visitAndMap(ctx.elseBlock.stmts, Statement.class);
+
+        List<Statement> elseBlock = (ctx.elseBlock != null)
+                ? visitAndMap(ctx.elseBlock.stmts, Statement.class)
+                : Collections.emptyList();
+
         return new IfThenElseStmt(ctx.start, condition, thenBlock, elseBlock);
     }
 
@@ -189,14 +211,21 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitWriteStmt(NottscriptParser.WriteStmtContext ctx) {
-        List<Expression> exprs = visitAndMap(ctx.exprList().exprs, Expression.class);
+        List<Expression> exprs = (ctx.exprList() != null)
+                ? visitAndMap(ctx.exprList().exprs, Expression.class)
+                : Collections.emptyList();
+
         return new WriteStmt(ctx.start, exprs);
     }
 
     @Override
     public Ast visitAllocateStmt(NottscriptParser.AllocateStmtContext ctx) {
         String name = ctx.NAME().getText();
-        List<Expression> dims = visitAndMap(ctx.exprList().exprs, Expression.class);
+
+        List<Expression> dims = (ctx.exprList() != null)
+                ? visitAndMap(ctx.exprList().exprs, Expression.class)
+                : Collections.emptyList();
+
         return new AllocateStmt(ctx.start, name, dims);
     }
 
@@ -295,7 +324,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitCallOrIndex(NottscriptParser.CallOrIndexContext ctx) {
         Expression base = (Expression) visit(ctx.base);
 
-        List<Expression> args = (ctx.args != null) ? visitAndMap(ctx.args.exprs, Expression.class) : Collections.emptyList();
+        List<Expression> args = (ctx.args != null)
+                ? visitAndMap(ctx.args.exprs, Expression.class)
+                : Collections.emptyList();
 
         return new CallOrIndexExpr(base.startToken(), base, args);
     }
@@ -303,18 +334,8 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     // --- Expression Atoms ---
 
     @Override
-    public Ast visitAtomBase(NottscriptParser.AtomBaseContext ctx) {
-        return visit(ctx.atom());
-    }
-
-    @Override
     public Ast visitParenExpr(NottscriptParser.ParenExprContext ctx) {
         return visit(ctx.expr());
-    }
-
-    @Override
-    public Ast visitLiteralExpr(NottscriptParser.LiteralExprContext ctx) {
-        return visit(ctx.literal());
     }
 
     @Override
@@ -383,7 +404,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     }
 
     private void checkIllegalDimensionsError(Token startToken, List<Dimension> dimensions) {
-        if (dimensions.stream().allMatch(dimension -> dimension instanceof LiteralDim) || dimensions.stream().allMatch(dimension -> dimension instanceof PointerDim)) return;
+        if (dimensions.isEmpty() || dimensions.stream().allMatch(dimension -> dimension instanceof LiteralDim) || dimensions.stream().allMatch(dimension -> dimension instanceof PointerDim)) return;
         String location = "line " + startToken.getLine() + ":" + startToken.getCharPositionInLine();
         String message = "error: Invalid Array Dimension.";
 
