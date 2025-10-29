@@ -21,26 +21,9 @@ import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.IntrinsicType.VarType;
 
 public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
-    private void checkNameMismatchError(Token startToken, String startName, Token endToken, String endName) {
-        if (startName.equals(endName)) return;
-
-        String location = "line " + endToken.getLine() + ":" + endToken.getCharPositionInLine();
-        String message = "error: Mismatched end name.";
-
-        String context = "Found '" + endName + "', but expected '" + startName + "' to match declaration on line " + startToken.getLine() + ".";
-
-        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
-    }
-
-    private void checkIllegalDimensionsError(Token startToken, List<Dimension> dimensions) {
-        if (dimensions.stream().allMatch(dimension -> dimension instanceof LiteralDim) || dimensions.stream().allMatch(dimension -> dimension instanceof PointerDim)) return;
-        String location = "line " + startToken.getLine() + ":" + startToken.getCharPositionInLine();
-        String message = "error: Invalid Array Dimension.";
-
-        String context = "All array dimensions must be either an integer or undefined.";
-
-        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
-    }
+    // ==================================================================
+    // == Top-Level & Program Units
+    // ==================================================================
 
     @Override
     public Ast visitCompilationUnit(NottscriptParser.CompilationUnitContext ctx) {
@@ -98,9 +81,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new DerivedTypeDecl(ctx.start, name, fields);
     }
 
-    // -----------------------------------------------------------------
-    // Declarations
-    // -----------------------------------------------------------------
+    // ==================================================================
+    // == Declarations & Type Specifications
+    // ==================================================================
 
     @Override
     public Ast visitVariableDecl(NottscriptParser.VariableDeclContext ctx) {
@@ -116,8 +99,6 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         List<String> names = visitANameList(ctx.nameList());
         return new VariableDecl(ctx.start, type, false, names);
     }
-
-    // --- Type Specifications ---
 
     @Override
     public Ast visitIntegerType(NottscriptParser.IntegerTypeContext ctx) {
@@ -150,9 +131,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new DerivedType(ctx.start, name, dims);
     }
 
-    // -----------------------------------------------------------------
-    // Statements
-    // -----------------------------------------------------------------
+    // ==================================================================
+    // == Statements
+    // ==================================================================
 
     @Override
     public Ast visitAssignmentStmt(NottscriptParser.AssignmentStmtContext ctx) {
@@ -225,9 +206,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new DeallocateStmt(ctx.start, name);
     }
 
-    // -----------------------------------------------------------------
-    // Expressions (Using Left-Recursive Grammar)
-    // -----------------------------------------------------------------
+    // ==================================================================
+    // == Expressions
+    // ==================================================================
 
     @Override
     public Ast visitOrExpr(NottscriptParser.OrExprContext ctx) {
@@ -319,6 +300,8 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new CallOrIndexExpr(base.startToken(), base, args);
     }
 
+    // --- Expression Atoms ---
+
     @Override
     public Ast visitAtomBase(NottscriptParser.AtomBaseContext ctx) {
         return visit(ctx.atom());
@@ -339,9 +322,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new NameExpr(ctx.start, ctx.NAME().getText());
     }
 
-    // -----------------------------------------------------------------
-    // Literals
-    // -----------------------------------------------------------------
+    // ==================================================================
+    // == Literals
+    // ==================================================================
 
     @Override
     public Ast visitIntLit(NottscriptParser.IntLitContext ctx) {
@@ -384,9 +367,30 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new BozLiteral(ctx.start, ctx.Z_LITERAL().getText(), 'z');
     }
 
-    // -----------------------------------------------------------------
-    // Helper Methods
-    // -----------------------------------------------------------------
+    // ==================================================================
+    // == Helper Methods
+    // ==================================================================
+
+    private void checkNameMismatchError(Token startToken, String startName, Token endToken, String endName) {
+        if (startName.equals(endName)) return;
+
+        String location = "line " + endToken.getLine() + ":" + endToken.getCharPositionInLine();
+        String message = "error: Mismatched end name.";
+
+        String context = "Found '" + endName + "', but expected '" + startName + "' to match declaration on line " + startToken.getLine() + ".";
+
+        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
+    }
+
+    private void checkIllegalDimensionsError(Token startToken, List<Dimension> dimensions) {
+        if (dimensions.stream().allMatch(dimension -> dimension instanceof LiteralDim) || dimensions.stream().allMatch(dimension -> dimension instanceof PointerDim)) return;
+        String location = "line " + startToken.getLine() + ":" + startToken.getCharPositionInLine();
+        String message = "error: Invalid Array Dimension.";
+
+        String context = "All array dimensions must be either an integer or undefined.";
+
+        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
+    }
 
     private <T extends Ast> List<T> visitAndMap(List<? extends ParseTree> nodes, Class<T> clazz) {
         if (nodes == null) {
