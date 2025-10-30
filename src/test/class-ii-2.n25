@@ -1,0 +1,20 @@
+program class2_2
+  integer :: x, y, diff
+  logical :: equal
+
+  diff = 0
+  equal = .false.
+  read x, y 
+  do while (x < y)
+    x = x + 1
+    diff = diff + 1
+  end do
+
+  equal = x == y 
+  if (equal) write 1
+  if (diff > 0) then 
+    write 1
+  else 
+    write 0
+  end if
+end program class2_2

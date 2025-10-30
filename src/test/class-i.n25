@@ -1,0 +1,33 @@
+function max(vec, width) result (max_val)
+  integer(*) pointer :: vector
+  integer :: width, max_val, i 
+
+  max_val = -32768
+  do i = 0, width 
+    if (vector(i) > max_val) max_val = vector(i)
+  end do
+end function max
+
+program class1
+  integer :: vec_width, max_val, i
+  integer(*) pointer :: vector
+  character :: prompt
+
+  write "How many numbers would you like?"
+  read vec_width
+  allocate vector, vec_width
+
+  do i = 0, vec_width
+    read vector(i)
+  end do
+
+  max_val = max(vector, vec_width)
+
+  prompt = "The max val is "
+  if (max_val >= 25) then 
+    prompt = prompt // "big"
+  else 
+    prompt = prompt // "small"
+  end if
+  write prompt
+end program class1

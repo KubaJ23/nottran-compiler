@@ -1,0 +1,8 @@
+program class3
+  if (5 .gt. 0) write .true.
+  if (5 .lt. 0) then 
+    write 1
+  else 
+    write 0
+  end if 
+end program class3

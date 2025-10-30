@@ -61,5 +61,6 @@ program statement_test
 end program statement_test
 
 subroutine my_sub()
-    ! Empty sub
+    ! not Empty sub
+    write "yes"
 end subroutine my_sub

@@ -1,0 +1,27 @@
+program class2_1
+  integer(5) :: vector
+  integer :: i, sum
+  character :: prompt
+
+  prompt = "Enter five numbers"
+  write prompt
+  do i = 0, 5 
+    read vector(i)
+  end do
+
+  i = 0
+  sum = 0
+  do while (i < 5)
+    sum = sum + vector(i)
+  end do
+
+  if (sum .gt. 20) then 
+    write "The sum is very big"
+  else 
+    if (sum .gt. 10) then 
+      write "The sum is not so big"
+    else 
+      write "The sum is small"
+    end if 
+  end if
+end program class2_1
