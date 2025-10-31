@@ -54,6 +54,6 @@ function get_val_recursive(n) result(ans)
     if (n <= 1) then
         ans = 1
     else
-        ans = n * get_val_recursive(n-1)
+        ans = n * get_val_recursive(n- 1)
     end if
 end function get_val_recursive

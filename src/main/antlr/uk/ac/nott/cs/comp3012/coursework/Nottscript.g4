@@ -15,19 +15,19 @@ programUnit
     ;
 
 programDeclaration
-    : PROGRAM name=NAME declarationBlock? statementBlock END PROGRAM endName=NAME
+    : PROGRAM name=NAME declarationBlock statementBlock END PROGRAM endName=NAME
     ;
 
 functionDeclaration
-    : FUNCTION name=NAME LPAREN nameList? RPAREN (RESULT LPAREN result=NAME RPAREN)? declarationBlock? statementBlock END FUNCTION endName=NAME
+    : FUNCTION name=NAME LPAREN nameList? RPAREN (RESULT LPAREN result=NAME RPAREN)? declarationBlock statementBlock END FUNCTION endName=NAME
     ;
 
 subroutineDeclaration
-    : SUBROUTINE name=NAME LPAREN nameList? RPAREN declarationBlock? statementBlock END SUBROUTINE endName=NAME
+    : SUBROUTINE name=NAME LPAREN nameList? RPAREN declarationBlock statementBlock END SUBROUTINE endName=NAME
     ;
 
 derivedTypeDeclaration
-    : TYPE name=NAME derivedTypeDeclBlock? END TYPE endName=NAME
+    : TYPE name=NAME derivedTypeDeclBlock END TYPE endName=NAME
     ;
 
 // ---------------------------
@@ -35,7 +35,7 @@ derivedTypeDeclaration
 // ---------------------------
 
 declarationBlock
-    : decls+=variableDecl+
+    : decls+=variableDecl*
     ;
 
 variableDecl
@@ -121,7 +121,7 @@ doWhileLoopStmt
     ;
 
 readStmt
-    : READ lval+=expr (COMMA lval+=expr)*
+    : READ exprList
     ;
 
 writeStmt
@@ -143,53 +143,6 @@ deallocateStmt
 exprList
     : exprs+=expr (COMMA exprs+=expr)*
     ;
-
-//expr
-//    : orExpr
-//    ;
-//
-//orExpr
-//    : left=andExpr (OR_OP right+=andExpr)*
-//    ;
-//
-//andExpr
-//    : left=relExpr (AND_OP right+=relExpr)*
-//    ;
-//
-//relExpr
-//    : left=concatExpr (op+=relOp right+=concatExpr)*
-//    ;
-//
-//concatExpr
-//    : left=addExpr (CONCAT right+=addExpr)*
-//    ;
-//
-//addExpr
-//    : left=mulExpr (op+=(PLUS | MINUS) right+=mulExpr)*
-//    ;
-//
-//mulExpr
-//    : left=powExpr (op+=(STAR | SLASH) right+=powExpr)*
-//    ;
-//
-//powExpr
-//    : base=postfixExpr (EXP exponent=powExpr)?
-//    ;
-//
-//postfixExpr
-//    : base=atom suffixes+=postfixSuffix*
-//    ;
-//
-//postfixSuffix
-//    : PERCENT field=NAME                # FieldAccess
-//    | LPAREN args=exprList? RPAREN    # CallOrIndex
-//    ;
-//
-//atom
-//    : LPAREN expr RPAREN              # ParenExpr
-//    | literal                         # LiteralExpr
-//    | NAME                            # NameExpr
-//    ;
 
 expr
     : <assoc=left>  left=expr OR_OP right=expr         # OrExpr

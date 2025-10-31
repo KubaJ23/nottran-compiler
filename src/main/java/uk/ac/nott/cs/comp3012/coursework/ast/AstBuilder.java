@@ -41,9 +41,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
 
-        List<VariableDecl> decls = (ctx.declarationBlock() != null) ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class) : Collections.emptyList();
-
+        List<VariableDecl> decls =  visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
+
         return new ProgramDecl(ctx.start, name, decls, stmts);
     }
 
@@ -56,8 +56,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
         String resultName = (ctx.result != null) ? ctx.result.getText() : null;
 
-        List<VariableDecl> decls = (ctx.declarationBlock() != null) ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class) : Collections.emptyList();
-
+        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
 
         return new FunctionDecl(ctx.start, name, params, resultName, decls, stmts);
@@ -70,9 +69,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
         List<String> params = visitANameList(ctx.nameList());
 
-        List<VariableDecl> decls = (ctx.declarationBlock() != null) ? visitAndMap(ctx.declarationBlock().decls, VariableDecl.class) : Collections.emptyList();
-
+        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
+
         return new SubroutineDecl(ctx.start, name, params, decls, stmts);
     }
 
@@ -82,7 +81,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
 
-        List<VariableDecl> fields = (ctx.derivedTypeDeclBlock() != null) ? visitAndMap(ctx.derivedTypeDeclBlock().fields, VariableDecl.class) : Collections.emptyList();
+        List<VariableDecl> fields = visitAndMap(ctx.derivedTypeDeclBlock().fields, VariableDecl.class);
 
         return new DerivedTypeDecl(ctx.start, name, fields);
     }
@@ -193,13 +192,13 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitReadStmt(NottscriptParser.ReadStmtContext ctx) {
-        List<Expression> lvalues = visitAndMap(ctx.lval, Expression.class);
-        return new ReadStmt(ctx.start, lvalues);
+        List<Expression> exprs = visitAndMap(ctx.exprList().exprs, Expression.class);
+        return new ReadStmt(ctx.start, exprs);
     }
 
     @Override
     public Ast visitWriteStmt(NottscriptParser.WriteStmtContext ctx) {
-        List<Expression> exprs = (ctx.exprList() != null) ? visitAndMap(ctx.exprList().exprs, Expression.class) : Collections.emptyList();
+        List<Expression> exprs = visitAndMap(ctx.exprList().exprs, Expression.class);
 
         return new WriteStmt(ctx.start, exprs);
     }
