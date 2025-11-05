@@ -70,7 +70,7 @@ public sealed interface Ast {
 
         record IntrinsicType(Token startToken, VarType type, List<Dimension> d) implements TypeSpec {
             enum VarType {
-                INTEGER, REAL, LOGICAL, CHARACTER
+                INTEGER, LOGICAL, CHARACTER
             }
         }
     }
@@ -84,20 +84,18 @@ public sealed interface Ast {
 
             record LogicalLiteral(Token startToken, boolean value) implements Literal {}
 
-            record RealLiteral(Token startToken, double value) implements Literal {}
-
             record BozLiteral(Token startToken, String value, char base) implements Literal {}
         }
-
-        record FieldAccessExpr(Token startToken, Expression base, String fieldName) implements Expression {}
-
-        record NameExpr(Token startToken, String name) implements Expression {}
 
         record BinaryOpExpr(Token startToken, Expression left, BinaryOp operator, Expression right) implements Expression {
             public enum BinaryOp {
                 ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER, CONCAT, EQUAL, NOT_EQUAL, LESS_THAN, LESS_EQUAL, GREATER_THAN, GREATER_EQUAL, AND, OR
             }
         }
+
+        record FieldAccessExpr(Token startToken, Expression base, String fieldName) implements Expression {}
+
+        record NameExpr(Token startToken, String name) implements Expression {}
 
         record CallOrIndexExpr(Token startToken, Expression base, List<Expression> arguments) implements Expression {}
     }

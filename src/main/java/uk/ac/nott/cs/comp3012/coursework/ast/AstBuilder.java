@@ -41,7 +41,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String endName = ctx.endName.getText();
         checkNameMismatchError(ctx.start, name, ctx.endName, endName);
 
-        List<VariableDecl> decls =  visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
+        List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
 
         return new ProgramDecl(ctx.start, name, decls, stmts);
@@ -113,8 +113,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitRealType(NottscriptParser.RealTypeContext ctx) {
-        List<Dimension> dims = visitAnArraySpec(ctx.arraySpec());
-        return new IntrinsicType(ctx.start, VarType.REAL, dims);
+        throw new UnsupportedOperationException("Reals are not supported yet.");
+//        List<Dimension> dims = visitAnArraySpec(ctx.arraySpec());
+//        return new IntrinsicType(ctx.start, VarType.REAL, dims);
     }
 
     @Override
@@ -334,8 +335,9 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitRealLit(NottscriptParser.RealLitContext ctx) {
-        String text = ctx.REAL_LITERAL().getText();
-        return new RealLiteral(ctx.start, Double.parseDouble(text));
+        throw new UnsupportedOperationException("Reals are not supported yet.");
+//        String text = ctx.REAL_LITERAL().getText();
+//        return new RealLiteral(ctx.start, Double.parseDouble(text));
     }
 
     @Override
