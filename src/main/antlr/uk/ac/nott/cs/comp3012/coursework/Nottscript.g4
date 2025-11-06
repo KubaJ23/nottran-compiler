@@ -145,16 +145,48 @@ exprList
     ;
 
 expr
-    : <assoc=left>  left=expr OR_OP right=expr         # OrExpr
-    | <assoc=left>  left=expr AND_OP right=expr        # AndExpr
-    | <assoc=left>  left=expr op=relOp right=expr         # RelExpr
-    | <assoc=left>  left=expr op=CONCAT right=expr        # ConcatExpr
-    | <assoc=left>  left=expr op=(PLUS | MINUS) right=expr # AddExpr
-    | <assoc=left>  left=expr op=(STAR | SLASH) right=expr # MulExpr
-    | <assoc=right> base=expr EXP exponent=expr      # PowExpr
-    | <assoc=left>  base=expr PERCENT field=NAME        # FieldAccess
-    | <assoc=left>  base=expr LPAREN args=exprList? RPAREN # CallOrIndex
-    | atom                                            # AtomBase
+    : orExpr_
+    ;
+
+orExpr_
+    : left=orExpr_ OR_OP right=andExpr_   # OrExpr
+    | andExpr_                            # OrBase
+    ;
+
+andExpr_
+    : left=andExpr_ AND_OP right=relExpr_ # AndExpr
+    | relExpr_                            # AndBase
+    ;
+
+relExpr_
+    : left=relExpr_ op=relOp right=concatExpr_ # RelExpr
+    | concatExpr_                              # RelBase
+    ;
+
+concatExpr_
+    : left=concatExpr_ CONCAT right=addExpr_ # ConcatExpr
+    | addExpr_                               # ConcatBase
+    ;
+
+addExpr_
+    : left=addExpr_ op=(PLUS | MINUS) right=mulExpr_ # AddExpr
+    | mulExpr_                                       # AddBase
+    ;
+
+mulExpr_
+    : left=mulExpr_ op=(STAR | SLASH) right=powExpr_ # MulExpr
+    | powExpr_                                       # MulBase
+    ;
+
+powExpr_
+    : base=primaryExpr EXP exponent=powExpr_  # PowExpr
+    | primaryExpr                             # PowBase
+    ;
+
+primaryExpr
+    : base=primaryExpr PERCENT field=NAME            # FieldAccess
+    | base=primaryExpr LPAREN args=exprList? RPAREN  # CallOrIndex
+    | atom                                           # PrimaryBase
     ;
 
 atom

@@ -57,6 +57,15 @@ public class TypeChecker extends AstBaseVisitor<Type> {
     }
 
     @Override
+    public Type visitCompilationUnit(CompilationUnit cu) {
+        for (ProgramUnit unit : cu.programUnits()) {
+            if (!(unit instanceof DerivedTypeDecl)) visit(unit);
+        }
+        visit(cu.program());
+        return null;
+    }
+
+    @Override
     public Type visitProgramDecl(ProgramDecl pd) {
         scopeStack.push(scopeMap.get(pd));
         visitStatementList(pd.statements());

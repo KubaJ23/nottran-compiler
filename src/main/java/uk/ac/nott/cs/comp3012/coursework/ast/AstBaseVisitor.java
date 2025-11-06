@@ -41,53 +41,53 @@ public abstract class AstBaseVisitor<T> implements AstVisitor<T> {
 
     protected T defaultResult() {return null;}
 
-    public T visitCompilationUnit(CompilationUnit cu) {return defaultResult();}
+    public T visitCompilationUnit(CompilationUnit cu) {throw new UnsupportedOperationException("visitCompilationUnit not implemented");}
 
-    public T visitProgramDecl(ProgramDecl pd) {return defaultResult();}
+    public T visitProgramDecl(ProgramDecl pd) {throw new UnsupportedOperationException("visitProgramDecl not implemented");}
 
-    public T visitFunctionDecl(FunctionDecl fd) {return defaultResult();}
+    public T visitFunctionDecl(FunctionDecl fd) {throw new UnsupportedOperationException("visitFunctionDecl not implemented");}
 
-    public T visitSubroutineDecl(SubroutineDecl sd) {return defaultResult();}
+    public T visitSubroutineDecl(SubroutineDecl sd) {throw new UnsupportedOperationException("visitSubroutineDecl not implemented");}
 
-    public T visitDerivedTypeDecl(DerivedTypeDecl dtd) {return defaultResult();}
+    public T visitDerivedTypeDecl(DerivedTypeDecl dtd) {throw new UnsupportedOperationException("visitDerivedTypeDecl not implemented");}
 
-    public T visitVariableDecl(VariableDecl vd) {return defaultResult();}
+    public T visitVariableDecl(VariableDecl vd) {throw new UnsupportedOperationException("visitVariableDecl not implemented");}
 
-    public T visitAssignmentStmt(AssignmentStmt s) {return defaultResult();}
+    public T visitAssignmentStmt(AssignmentStmt s) {throw new UnsupportedOperationException("visitAssignmentStmt not implemented");}
 
-    public T visitCallStmt(CallStmt s) {return defaultResult();}
+    public T visitCallStmt(CallStmt s) {throw new UnsupportedOperationException("visitCallStmt not implemented");}
 
-    public T visitIfSimpleStmt(IfSimpleStmt s) {return defaultResult();}
+    public T visitIfSimpleStmt(IfSimpleStmt s) {throw new UnsupportedOperationException("visitIfSimpleStmt not implemented");}
 
-    public T visitIfThenElseStmt(IfThenElseStmt s) {return defaultResult();}
+    public T visitIfThenElseStmt(IfThenElseStmt s) {throw new UnsupportedOperationException("visitIfThenElseStmt not implemented");}
 
-    public T visitDoLoopStmt(DoLoopStmt s) {return defaultResult();}
+    public T visitDoLoopStmt(DoLoopStmt s) {throw new UnsupportedOperationException("visitDoLoopStmt not implemented");}
 
-    public T visitDoWhileStmt(DoWhileStmt s) {return defaultResult();}
+    public T visitDoWhileStmt(DoWhileStmt s) {throw new UnsupportedOperationException("visitDoWhileStmt not implemented");}
 
-    public T visitReadStmt(ReadStmt s) {return defaultResult();}
+    public T visitReadStmt(ReadStmt s) {throw new UnsupportedOperationException("visitReadStmt not implemented");}
 
-    public T visitWriteStmt(WriteStmt s) {return defaultResult();}
+    public T visitWriteStmt(WriteStmt s) {throw new UnsupportedOperationException("visitWriteStmt not implemented");}
 
-    public T visitAllocateStmt(AllocateStmt s) {return defaultResult();}
+    public T visitAllocateStmt(AllocateStmt s) {throw new UnsupportedOperationException("visitAllocateStmt not implemented");}
 
-    public T visitBinaryOpExpr(BinaryOpExpr e) {return defaultResult();}
+    public T visitBinaryOpExpr(BinaryOpExpr e) {throw new UnsupportedOperationException("visitBinaryOpExpr not implemented");}
 
-    public T visitFieldAccessExpr(FieldAccessExpr e) {return defaultResult();}
+    public T visitFieldAccessExpr(FieldAccessExpr e) {throw new UnsupportedOperationException("visitFieldAccessExpr not implemented");}
 
-    public T visitCallOrIndexExpr(CallOrIndexExpr e) {return defaultResult();}
+    public T visitCallOrIndexExpr(CallOrIndexExpr e) {throw new UnsupportedOperationException("visitCallOrIndexExpr not implemented");}
 
-    public T visitIntrinsicType(IntrinsicType it) {return defaultResult();}
+    public T visitIntrinsicType(IntrinsicType it) {throw new UnsupportedOperationException("visitIntrinsicType not implemented");}
 
-    public T visitDerivedType(DerivedType dt) {return defaultResult();}
+    public T visitDerivedType(DerivedType dt) {throw new UnsupportedOperationException("visitDerivedType not implemented");}
 
-    public T visitDeallocateStmt(DeallocateStmt s) {return defaultResult();}
+    public T visitDeallocateStmt(DeallocateStmt s) {throw new UnsupportedOperationException("visitDeallocateStmt not implemented");}
 
-    public T visitNameExpr(NameExpr e) {return defaultResult();}
+    public T visitNameExpr(NameExpr e) {throw new UnsupportedOperationException("visitNameExpr not implemented");}
 
-    public T visitIntLiteral(Literal.IntLiteral l) {return defaultResult();}
+    public T visitIntLiteral(Literal.IntLiteral l) {throw new UnsupportedOperationException("visitIntLiteral not implemented");}
 
-    public T visitLogicalLiteral(Literal.LogicalLiteral l) {return defaultResult();}
+    public T visitLogicalLiteral(Literal.LogicalLiteral l) {throw new UnsupportedOperationException("visitLogicalLiteral not implemented");}
 
-    public T visitCharLiteral(Literal.CharLiteral l) {return defaultResult();}
+    public T visitCharLiteral(Literal.CharLiteral l) {throw new UnsupportedOperationException("visitCharLiteral not implemented");}
 }

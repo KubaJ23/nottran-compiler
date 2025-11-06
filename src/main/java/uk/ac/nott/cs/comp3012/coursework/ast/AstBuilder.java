@@ -324,6 +324,46 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         return new NameExpr(ctx.start, ctx.NAME().getText());
     }
 
+    @Override
+    public Ast visitOrBase(NottscriptParser.OrBaseContext ctx) {
+        return visit(ctx.andExpr_());
+    }
+
+    @Override
+    public Ast visitAndBase(NottscriptParser.AndBaseContext ctx) {
+        return visit(ctx.relExpr_());
+    }
+
+    @Override
+    public Ast visitRelBase(NottscriptParser.RelBaseContext ctx) {
+        return visit(ctx.concatExpr_());
+    }
+
+    @Override
+    public Ast visitConcatBase(NottscriptParser.ConcatBaseContext ctx) {
+        return visit(ctx.addExpr_());
+    }
+
+    @Override
+    public Ast visitAddBase(NottscriptParser.AddBaseContext ctx) {
+        return visit(ctx.mulExpr_());
+    }
+
+    @Override
+    public Ast visitMulBase(NottscriptParser.MulBaseContext ctx) {
+        return visit(ctx.powExpr_());
+    }
+
+    @Override
+    public Ast visitPowBase(NottscriptParser.PowBaseContext ctx) {
+        return visit(ctx.primaryExpr());
+    }
+
+    @Override
+    public Ast visitPrimaryBase(NottscriptParser.PrimaryBaseContext ctx) {
+        return visit(ctx.atom());
+    }
+
     // ==================================================================
     // Literals
     // ==================================================================

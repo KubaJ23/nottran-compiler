@@ -5,8 +5,11 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstBuilder;
+import uk.ac.nott.cs.comp3012.coursework.ast.AstPrinter;
 
 public class Frontend implements Compiler.Frontend {
+    SymbolTableBuilder symbolTableBuilder = new SymbolTableBuilder();
+
     @Override
     public Ast runFrontend(String programText) {
         NottscriptLexer lexer = new NottscriptLexer(CharStreams.fromString(programText));
@@ -17,15 +20,8 @@ public class Frontend implements Compiler.Frontend {
         AstBuilder astBuilder = new AstBuilder();
         Ast ast = fileContext.accept(astBuilder);
 
-//        new AstPrinter().print(ast);
-
-//        System.out.println("Creating Symbol Table...\n");
-        SymbolTableBuilder symbolTableBuilder = new SymbolTableBuilder();
-
         symbolTableBuilder.build((Ast.CompilationUnit) ast);
-//        System.out.println(symbolTableBuilder);
 
-//        System.out.println("\nRunning Type Checking pass...");
         TypeChecker typeChecker = new TypeChecker(symbolTableBuilder.getGlobalScope(), symbolTableBuilder.getScopeMap());
         typeChecker.visit(ast);
 

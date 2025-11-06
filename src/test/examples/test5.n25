@@ -41,9 +41,9 @@ program expression_test
     s3 = s1 // " " // s2 ! s3 = "hello world"
 
     ! Relational and Logical operators
-    l1 = (a == 2) .and. (x > 2)                 ! .true.
+    l1 = (a == 2) .and. (a > 2)                 ! .true.
     l2 = (b /= 512) .or. (c .gt. 1)              ! .false.
     l3 = (s3 .eq. "hello world") .and. (l1 .neq. l2) ! .true.
 
-    write a, b, c, d, x, s3, l1, l2, l3
+    write a, b, c, d, s3, l1, l2, l3
 end program expression_test
