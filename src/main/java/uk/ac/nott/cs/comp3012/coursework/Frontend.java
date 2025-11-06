@@ -5,9 +5,6 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstBuilder;
-import uk.ac.nott.cs.comp3012.coursework.ast.AstPrinter;
-import uk.ac.nott.cs.comp3012.coursework.util.types.TypeChecker;
-
 
 public class Frontend implements Compiler.Frontend {
     @Override

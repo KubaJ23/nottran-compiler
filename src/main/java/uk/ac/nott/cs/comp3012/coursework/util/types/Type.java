@@ -1,10 +1,7 @@
 package uk.ac.nott.cs.comp3012.coursework.util.types;
 
-import uk.ac.nott.cs.comp3012.coursework.SymbolTable;
-
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public sealed interface Type {

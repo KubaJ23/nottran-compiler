@@ -194,7 +194,7 @@ public class AstPrinter extends AstBaseVisitor<Void> {
     // Helpers
 
     private void printNode(Ast node, boolean isLast) {
-        String prefix = prefixes.stream().collect(Collectors.joining());
+        String prefix = String.join("", prefixes);
         String branch = isLast ? LAST_BRANCH : BRANCH;
         String color = ANSI_COLORS[prefixes.size() % ANSI_COLORS.length];
         String nodeText = getNodeText(node);
@@ -236,7 +236,7 @@ public class AstPrinter extends AstBaseVisitor<Void> {
     private void visitNodeList(String label, List<? extends Ast> list, boolean isParentLast) {
         if (list == null || list.isEmpty()) return;
 
-        String prefix = prefixes.stream().collect(Collectors.joining());
+        String prefix = String.join("", prefixes);
         String branch = isParentLast ? LAST_BRANCH : BRANCH;
         String color = ANSI_COLORS[prefixes.size() % ANSI_COLORS.length];
 
@@ -245,7 +245,7 @@ public class AstPrinter extends AstBaseVisitor<Void> {
 
         prefixes.add(isParentLast ? INDENT : VERTICAL);
         visitNodeList(list);
-        prefixes.remove(prefixes.size() - 1);
+        prefixes.removeLast();
     }
 
     private void visitNodeList(List<? extends Ast> list) {

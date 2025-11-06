@@ -1,15 +1,14 @@
-package uk.ac.nott.cs.comp3012.coursework.util.types;
+package uk.ac.nott.cs.comp3012.coursework;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.CompilerException;
-import uk.ac.nott.cs.comp3012.coursework.Symbol;
-import uk.ac.nott.cs.comp3012.coursework.SymbolTable;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstBaseVisitor;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
 
 import java.util.List;
 import java.util.Map;
@@ -17,19 +16,17 @@ import java.util.Stack;
 
 public class TypeChecker extends AstBaseVisitor<Type> {
 
-    private final SymbolTable globalScope;
     private final Map<Ast, SymbolTable> scopeMap;
-    private Stack<SymbolTable> scopeStack = new Stack<>();
+    private final Stack<SymbolTable> scopeStack = new Stack<>();
 
     public TypeChecker(SymbolTable globalScope, Map<Ast, SymbolTable> scopeMap) {
-        this.globalScope = globalScope;
         this.scopeMap = scopeMap;
         scopeStack.push(globalScope);
     }
 
     private Type unwrapPointer(Type type) {
-        if (type instanceof Type.PointerType pt) {
-            return pt.baseType();
+        if (type instanceof Type.PointerType(Type baseType)) {
+            return baseType;
         }
         return type;
     }
@@ -177,11 +174,10 @@ public class TypeChecker extends AstBaseVisitor<Type> {
     public Type visitAllocateStmt(AllocateStmt s) {
         Symbol sym = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow(() -> new CompilerException(s.startToken(), "Undeclared variable: '" + s.pointerName() + "'"));
 
-        if (!(sym.type() instanceof Type.PointerType pt)) {
+        if (!(sym.type() instanceof Type.PointerType(Type baseType))) {
             throw new CompilerException(s.startToken(), "'" + s.pointerName() + "' is not a POINTER.");
         }
 
-        Type baseType = pt.baseType();
         List<Expression> allocDimensions = s.dimensions();
 
         if (baseType instanceof Type.ArrayType declArrayType) {

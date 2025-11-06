@@ -1,7 +1,5 @@
 package uk.ac.nott.cs.comp3012.coursework.ast;
 
-import java.util.List;
-
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
