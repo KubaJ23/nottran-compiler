@@ -1,0 +1,59 @@
+function read_square(n) result(m)
+    integer(*,*) :: m
+    integer :: i, j, n
+    write "Enter matrix values:"
+    do i = 0, n
+        do j = 0, n
+            read m(i,j)
+        end do
+    end do
+end function read_square
+
+function transpose(a) result(t)
+    integer(4,4) :: a, t
+    integer :: i, j
+    do i = 0, 4
+        do j = 0, 4
+            t(i,j) = a(j,i)
+        end do
+    end do
+end function transpose
+
+function is_symmetric(a) result(flag)
+    integer(4,4) :: a
+    logical :: flag
+    integer :: i, j
+    flag = .true.
+    do i = 0, 4
+        do j = 0, 4
+            if (a(i,j) /= a(j,i)) then
+                flag = .false.
+            end if
+        end do
+    end do
+end function is_symmetric
+
+subroutine print_matrix(a)
+    integer(4,4) :: a
+    integer :: i, j
+    write "Matrix:"
+    do i = 0, 4
+        do j = 0, 4
+            write a(i,j)
+        end do
+    end do
+end subroutine print_matrix
+
+program test_symmetry
+    integer(*,*) :: m, t
+    logical :: ok
+    m = read_square(4)
+    t = transpose(m)
+    ok = is_symmetric(m)
+    call print_matrix(t)
+    if (ok) then
+        write "Symmetric"
+    else
+        write "Not symmetric"
+    end if
+end program test_symmetry

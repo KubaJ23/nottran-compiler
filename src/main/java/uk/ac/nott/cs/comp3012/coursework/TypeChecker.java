@@ -10,6 +10,7 @@ import uk.ac.nott.cs.comp3012.coursework.ast.AstBaseVisitor;
 import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
 import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -18,10 +19,19 @@ public class TypeChecker extends AstBaseVisitor<Type> {
 
     private final Map<Ast, SymbolTable> scopeMap;
     private final Stack<SymbolTable> scopeStack = new Stack<>();
+    private final Map<Ast, Type> typeMap = new HashMap<>();
 
-    public TypeChecker(SymbolTable globalScope, Map<Ast, SymbolTable> scopeMap) {
+    public TypeChecker(Map<Ast, SymbolTable> scopeMap) {
         this.scopeMap = scopeMap;
-        scopeStack.push(globalScope);
+    }
+
+    public Map<Ast, Type> getTypeMap() {
+        return typeMap;
+    }
+
+    private Type storeType(Ast node, Type type) {
+        typeMap.put(node, type);
+        return type;
     }
 
     private Type unwrapPointer(Type type) {
@@ -58,10 +68,12 @@ public class TypeChecker extends AstBaseVisitor<Type> {
 
     @Override
     public Type visitCompilationUnit(CompilationUnit cu) {
+        scopeStack.push(scopeMap.get(cu));
         for (ProgramUnit unit : cu.programUnits()) {
             if (!(unit instanceof DerivedTypeDecl)) visit(unit);
         }
         visit(cu.program());
+        scopeStack.pop();
         return null;
     }
 
@@ -232,31 +244,31 @@ public class TypeChecker extends AstBaseVisitor<Type> {
             case ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER:
                 checkExpectedType(e.left().startToken(), Type.Intrinsic.INTEGER, unwrappedLeft);
                 checkExpectedType(e.right().startToken(), Type.Intrinsic.INTEGER, unwrappedRight);
-                return Type.Intrinsic.INTEGER;
+                return storeType(e, Type.Intrinsic.INTEGER);
 
             case CONCAT:
                 checkExpectedType(e.left().startToken(), Type.Intrinsic.CHARACTER, unwrappedLeft);
                 checkExpectedType(e.right().startToken(), Type.Intrinsic.CHARACTER, unwrappedRight);
-                return Type.Intrinsic.CHARACTER;
+                return storeType(e, Type.Intrinsic.CHARACTER);
 
             case AND, OR:
                 checkExpectedType(e.left().startToken(), Type.Intrinsic.LOGICAL, unwrappedLeft);
                 checkExpectedType(e.right().startToken(), Type.Intrinsic.LOGICAL, unwrappedRight);
-                return Type.Intrinsic.LOGICAL;
+                return storeType(e, Type.Intrinsic.LOGICAL);
 
             case EQUAL, NOT_EQUAL:
                 checkExpectedType(e.startToken(), unwrappedLeft, unwrappedRight);
                 if (!(unwrappedLeft instanceof Type.Intrinsic)) {
                     throw new CompilerException(e.startToken(), "Cannot compare derived types for equality.");
                 }
-                return Type.Intrinsic.LOGICAL;
+                return storeType(e, Type.Intrinsic.LOGICAL);
 
             case LESS_THAN, LESS_EQUAL, GREATER_THAN, GREATER_EQUAL:
                 checkExpectedType(e.startToken(), unwrappedLeft, unwrappedRight);
                 if (unwrappedLeft == Type.Intrinsic.LOGICAL) {
                     throw new CompilerException(e.startToken(), "Can only perform ordering comparisons on INTEGER or CHARACTER types.");
                 }
-                return Type.Intrinsic.LOGICAL;
+                return storeType(e, Type.Intrinsic.LOGICAL);
 
             default:
                 throw new IllegalStateException("Unexpected binary operator: " + e.operator());
@@ -277,7 +289,7 @@ public class TypeChecker extends AstBaseVisitor<Type> {
             throw new CompilerException(e.startToken(), "Type '" + typeName + "' has no field named '" + e.fieldName() + "'.");
         }
 
-        return fieldType;
+        return storeType(e, fieldType);
     }
 
     @Override
@@ -286,7 +298,7 @@ public class TypeChecker extends AstBaseVisitor<Type> {
 
         if (rawBaseType instanceof Type.FunctionType(Type returnType, List<Type> paramTypes)) {
             checkFunctionArguments(e.startToken(), paramTypes, e.arguments());
-            return returnType;
+            return storeType(e, returnType);
         }
 
         Type unwrappedBase = unwrapPointer(rawBaseType);
@@ -298,7 +310,7 @@ public class TypeChecker extends AstBaseVisitor<Type> {
             }
             if (e.arguments().size() != dimensions.size()) throw new CompilerException(e.startToken(), "Incorrect number of array dimensions. Expected " + dimensions.size() + " but got " + e.arguments().size() + ".");
 
-            return baseType;
+            return storeType(e, baseType);
         }
 
         throw new CompilerException(e.base().startToken(), "This expression is not a function or an array, so it cannot be called or indexed.");
@@ -312,7 +324,7 @@ public class TypeChecker extends AstBaseVisitor<Type> {
             throw new CompilerException(e.startToken(), "'" + e.name() + "' is a " + sym.kind() + " and cannot be used in an expression.");
         }
 
-        return sym.type();
+        return storeType(e, sym.type());
     }
 
     private void checkFunctionArguments(Token token, List<Type> expectedTypes, List<Expression> actualArgs) {
@@ -328,16 +340,16 @@ public class TypeChecker extends AstBaseVisitor<Type> {
 
     @Override
     public Type visitIntLiteral(Literal.IntLiteral l) {
-        return Type.Intrinsic.INTEGER;
+        return storeType(l, Type.Intrinsic.INTEGER);
     }
 
     @Override
     public Type visitLogicalLiteral(Literal.LogicalLiteral l) {
-        return Type.Intrinsic.LOGICAL;
+        return storeType(l, Type.Intrinsic.LOGICAL);
     }
 
     @Override
     public Type visitCharLiteral(Literal.CharLiteral l) {
-        return Type.Intrinsic.CHARACTER;
+        return storeType(l, Type.Intrinsic.CHARACTER);
     }
 }

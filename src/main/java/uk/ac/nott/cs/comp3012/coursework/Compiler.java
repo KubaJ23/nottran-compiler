@@ -5,8 +5,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
 
 /**
  * Base class for a compiler.
@@ -56,7 +58,7 @@ public class Compiler {
         String programText = Files.readString(Path.of(inputFile));
 
         Ast program = frontend.runFrontend(programText);
-        byte[] code = backend.runBackend(program);
+        byte[] code = backend.runBackend(program, ((uk.ac.nott.cs.comp3012.coursework.Frontend) frontend).getScopeMap(), ((uk.ac.nott.cs.comp3012.coursework.Frontend) frontend).getTypeMap());
 
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             for (byte b : code) {
@@ -92,6 +94,6 @@ public class Compiler {
          * @param program IR to transform
          * @return the bytes
          */
-        byte[] runBackend(Ast program);
+        byte[] runBackend(Ast program, Map<Ast, SymbolTable> scopeMap, Map<Ast, Type> typeMap);
     }
 }

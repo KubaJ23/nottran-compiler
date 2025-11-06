@@ -32,6 +32,7 @@ public class SymbolTableBuilder extends AstBaseVisitor<Void> {
 
     @Override
     public Void visitCompilationUnit(CompilationUnit cu) {
+        scopeMap.put(cu, globalScope);
         for (ProgramUnit unit : cu.programUnits()) {
             if (unit instanceof DerivedTypeDecl) {
                 visit(unit);
