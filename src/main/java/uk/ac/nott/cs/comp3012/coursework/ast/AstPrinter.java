@@ -4,23 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// Import all AST node definitions
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Dimension.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.Literal.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.IntrinsicType.VarType;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
 
-public class AstPrinter {
+public class AstPrinter extends AstBaseVisitor<Void> {
 
     private final List<String> prefixes = new ArrayList<>();
-    //    private static final String BRANCH = "├── ";
-//    private static final String LAST_BRANCH = "└── ";
-//    private static final String VERTICAL = "│  ";
-//    private static final String INDENT = "   ";
     private static final String BRANCH = "|-- ";
     private static final String LAST_BRANCH = "`-- ";
     private static final String VERTICAL = "|  ";
@@ -45,81 +37,161 @@ public class AstPrinter {
         }
 
         printNode(node, isLast);
+
         prefixes.add(isLast ? INDENT : VERTICAL);
 
-        switch (node) {
-            case CompilationUnit cu -> {
-                visit(cu.program(), cu.programUnits().isEmpty());
-                visitNodeList(cu.programUnits());
-            }
-            case ProgramUnit.ProgramDecl pd -> {
-                visitNodeList("Declarations", pd.declarations(), pd.statements().isEmpty());
-                visitNodeList("Statements", pd.statements(), true);
-            }
-            case ProgramUnit.FunctionDecl fd -> {
-                visitNodeList("Declarations", fd.declarations(), fd.statements().isEmpty());
-                visitNodeList("Statements", fd.statements(), true);
-            }
-            case ProgramUnit.SubroutineDecl sd -> {
-                visitNodeList("Declarations", sd.declarations(), sd.statements().isEmpty());
-                visitNodeList("Statements", sd.statements(), true);
-            }
-            case ProgramUnit.DerivedTypeDecl dtd -> visitNodeList("Fields", dtd.fields(), true);
-            case VariableDecl vd -> {
-                visit(vd.type(), true);
-            }
-            case Statement.AssignmentStmt s -> {
-                visit(s.lvalue(), false);
-                visit(s.rvalue(), true);
-            }
-            case Statement.CallStmt s -> {
-                visitNodeList("Arguments", s.arguments(), true);
-            }
-            case Statement.IfSimpleStmt s -> {
-                visit(s.condition(), false);
-                visit(s.thenStatement(), true);
-            }
-            case Statement.IfThenElseStmt s -> {
-                visit(s.condition(), s.thenBlock().isEmpty() && s.elseBlock().isEmpty());
-                visitNodeList("Then", s.thenBlock(), s.elseBlock().isEmpty());
-                visitNodeList("Else", s.elseBlock(), true);
-            }
-            case Statement.DoLoopStmt s -> {
-                visit(s.start(), false);
-                visit(s.end(), s.step() == null && s.body().isEmpty());
-                visit(s.step(), s.body().isEmpty());
-                visitNodeList("Body", s.body(), true);
-            }
-            case Statement.DoWhileStmt s -> {
-                visit(s.condition(), s.body().isEmpty());
-                visitNodeList("Body", s.body(), true);
-            }
-            case Statement.ReadStmt s -> {
-                visitNodeList("LValues", s.lvalues(), true);
-            }
-            case Statement.WriteStmt s -> visitNodeList("Expressions", s.expressions(), true);
-            case Statement.AllocateStmt s -> {
-                visitNodeList("Dimensions", s.dimensions(), true);
-            }
-            case Expression.BinaryOpExpr e -> {
-                visit(e.left(), false);
-                visit(e.right(), true);
-            }
-            case Expression.FieldAccessExpr e -> {
-                visit(e.base(), true);
-            }
-            case Expression.CallOrIndexExpr e -> {
-                visit(e.base(), e.arguments().isEmpty());
-                visitNodeList("Arguments", e.arguments(), true);
-            }
-            // Leaf nodes have no children to visit
-            case TypeSpec _, DeallocateStmt _, NameExpr _, Literal _ -> {}
-        }
+        visit(node);
 
         if (!prefixes.isEmpty()) {
-            prefixes.remove(prefixes.size() - 1);
+            prefixes.removeLast();
         }
     }
+
+    @Override
+    public Void visitCompilationUnit(CompilationUnit cu) {
+        visit(cu.program(), cu.programUnits().isEmpty());
+        visitNodeList(cu.programUnits());
+        return null;
+    }
+
+    @Override
+    public Void visitProgramDecl(ProgramDecl pd) {
+        visitNodeList("Declarations", pd.declarations(), pd.statements().isEmpty());
+        visitNodeList("Statements", pd.statements(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionDecl(FunctionDecl fd) {
+        visitNodeList("Declarations", fd.declarations(), fd.statements().isEmpty());
+        visitNodeList("Statements", fd.statements(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitSubroutineDecl(SubroutineDecl sd) {
+        visitNodeList("Declarations", sd.declarations(), sd.statements().isEmpty());
+        visitNodeList("Statements", sd.statements(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitDerivedTypeDecl(DerivedTypeDecl dtd) {
+        visitNodeList("Fields", dtd.fields(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitVariableDecl(VariableDecl vd) {
+        visit(vd.type(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitAssignmentStmt(AssignmentStmt s) {
+        visit(s.lvalue(), false);
+        visit(s.rvalue(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitCallStmt(CallStmt s) {
+        visitNodeList("Arguments", s.arguments(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitIfSimpleStmt(IfSimpleStmt s) {
+        visit(s.condition(), false);
+        visit(s.thenStatement(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitIfThenElseStmt(IfThenElseStmt s) {
+        visit(s.condition(), s.thenBlock().isEmpty() && s.elseBlock().isEmpty());
+        visitNodeList("Then", s.thenBlock(), s.elseBlock().isEmpty());
+        visitNodeList("Else", s.elseBlock(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitDoLoopStmt(DoLoopStmt s) {
+        visit(s.start(), false);
+        visit(s.end(), s.step() == null && s.body().isEmpty());
+        visit(s.step(), s.body().isEmpty());
+        visitNodeList("Body", s.body(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitDoWhileStmt(DoWhileStmt s) {
+        visit(s.condition(), s.body().isEmpty());
+        visitNodeList("Body", s.body(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitReadStmt(ReadStmt s) {
+        visitNodeList("LValues", s.lvalues(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitWriteStmt(WriteStmt s) {
+        visitNodeList("Expressions", s.expressions(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitAllocateStmt(AllocateStmt s) {
+        visitNodeList("Dimensions", s.dimensions(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitBinaryOpExpr(BinaryOpExpr e) {
+        visit(e.left(), false);
+        visit(e.right(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitFieldAccessExpr(FieldAccessExpr e) {
+        visit(e.base(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitCallOrIndexExpr(CallOrIndexExpr e) {
+        visit(e.base(), e.arguments().isEmpty());
+        visitNodeList("Arguments", e.arguments(), true);
+        return null;
+    }
+
+    @Override
+    public Void visitIntrinsicType(TypeSpec.IntrinsicType it) {return null;}
+
+    @Override
+    public Void visitDerivedType(TypeSpec.DerivedType dt) {return null;}
+
+    @Override
+    public Void visitDeallocateStmt(DeallocateStmt s) {return null;}
+
+    @Override
+    public Void visitNameExpr(NameExpr e) {return null;}
+
+    @Override
+    public Void visitIntLiteral(Literal.IntLiteral l) {return null;}
+
+    @Override
+    public Void visitLogicalLiteral(Literal.LogicalLiteral l) {return null;}
+
+    @Override
+    public Void visitCharLiteral(Literal.CharLiteral l) {return null;}
+
+
+    // Helpers
 
     private void printNode(Ast node, boolean isLast) {
         String prefix = prefixes.stream().collect(Collectors.joining());
@@ -139,8 +211,8 @@ public class AstPrinter {
             case ProgramUnit.SubroutineDecl sd -> "Subroutine: " + sd.name() + "(Params: " + String.join(", ", sd.parameterNames()) + ")";
             case ProgramUnit.DerivedTypeDecl dtd -> "Type: " + dtd.name();
             case VariableDecl vd -> "VarDecl: " + String.join(", ", vd.names()) + (vd.isPointer() ? " :: POINTER" : " ::");
-            case TypeSpec.IntrinsicType it -> "TypeSpec: Intrinsic(" + it.type() + dimToString(it.d()) + ")";
-            case TypeSpec.DerivedType dt -> "TypeSpec: Derived(" + dt.name() + dimToString(dt.d()) + ")";
+            case TypeSpec.IntrinsicType it -> "TypeSpec: Intrinsic(" + it.type() + dimToString(it.dimensions()) + ")";
+            case TypeSpec.DerivedType dt -> "TypeSpec: Derived(" + dt.name() + dimToString(dt.dimensions()) + ")";
             case Statement.AssignmentStmt s -> "Assignment (=)";
             case Statement.CallStmt s -> "Call: " + s.subroutineName();
             case Statement.IfSimpleStmt s -> "IfSimple";
@@ -156,17 +228,13 @@ public class AstPrinter {
             case Expression.CallOrIndexExpr e -> "CallOrIndex";
             case Expression.NameExpr e -> "Name: " + e.name();
             case Expression.Literal.IntLiteral l -> "Literal: " + l.value() + " (Int)";
-            case Expression.Literal.RealLiteral l -> "Literal: " + l.value() + " (Real)";
             case Expression.Literal.LogicalLiteral l -> "Literal: ." + l.value() + ". (Logical)";
             case Expression.Literal.CharLiteral l -> "Literal: '" + l.value() + "' (Char)";
-            case Expression.Literal.BozLiteral l -> "Literal: " + l.value() + " (Boz:" + l.base() + ")";
         };
     }
 
     private void visitNodeList(String label, List<? extends Ast> list, boolean isParentLast) {
-        if (list == null || list.isEmpty()) {
-            return;
-        }
+        if (list == null || list.isEmpty()) return;
 
         String prefix = prefixes.stream().collect(Collectors.joining());
         String branch = isParentLast ? LAST_BRANCH : BRANCH;
@@ -192,7 +260,7 @@ public class AstPrinter {
             return "";
         }
         return dims.stream().map(d -> {
-            if (d instanceof LiteralDim(int size)) {
+            if (d instanceof Dimension.Known(int size)) {
                 return String.valueOf(size);
             } else {
                 return "*";

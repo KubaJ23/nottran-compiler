@@ -8,7 +8,6 @@
 
 program lexical_test
     integer :: i, a_long_name_123, j, k
-    real :: r1, r2, r3, r4
     logical :: l1, l2
     character :: c1, c2, c3
 
@@ -22,11 +21,6 @@ program lexical_test
     k = o"734502"     ! Octal
     i = z"af132cd"    ! Hexadecimal
 
-    ! Test real literals
-    r1 = 12.345
-    r2 = +67.8
-    r3 = 25.
-    r4 = -.777
 
     ! Test logical literals
     l1 = .true.

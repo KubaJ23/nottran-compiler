@@ -1,4 +1,4 @@
-function max(vec, width) result (max_val)
+function max(vector, width) result (max_val)
   integer(*) pointer :: vector
   integer :: width, max_val, i 
 

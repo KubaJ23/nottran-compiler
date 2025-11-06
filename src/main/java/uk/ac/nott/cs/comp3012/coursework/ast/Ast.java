@@ -1,6 +1,8 @@
 package uk.ac.nott.cs.comp3012.coursework.ast;
 
 import org.antlr.v4.runtime.Token;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
 
 import java.util.List;
 
@@ -59,19 +61,13 @@ public sealed interface Ast {
      */
     record VariableDecl(Token startToken, TypeSpec type, boolean isPointer, List<String> names) implements Ast {}
 
-    sealed interface Dimension {
-        record LiteralDim(int size) implements Dimension {}
-
-        record PointerDim() implements Dimension {}
-    }
 
     sealed interface TypeSpec extends Ast {
-        record DerivedType(Token startToken, String name, List<Dimension> d) implements TypeSpec {}
+        List<Dimension> dimensions();
 
-        record IntrinsicType(Token startToken, VarType type, List<Dimension> d) implements TypeSpec {
-            enum VarType {
-                INTEGER, LOGICAL, CHARACTER
-            }
+        record DerivedType(Token startToken, String name, List<Dimension> dimensions) implements TypeSpec {}
+
+        record IntrinsicType(Token startToken, Type.Intrinsic type, List<Dimension> dimensions) implements TypeSpec {
         }
     }
 
@@ -84,7 +80,6 @@ public sealed interface Ast {
 
             record LogicalLiteral(Token startToken, boolean value) implements Literal {}
 
-            record BozLiteral(Token startToken, String value, char base) implements Literal {}
         }
 
         record BinaryOpExpr(Token startToken, Expression left, BinaryOp operator, Expression right) implements Expression {

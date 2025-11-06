@@ -18,14 +18,12 @@ end type screen
 program structure_test
     ! Variable declarations using the globally defined types
     integer :: i
-    real(10) :: a ! 1D array
     logical(4, 4) :: b ! 2D array
     type (pixel) :: p1
     type (screen) :: s1
 
     ! Pointer declarations
     integer pointer :: p_int
-    real(*) pointer :: p_array_1d
     type (pixel)(*, *) pointer :: p_pixel_matrix
 
     ! Statements

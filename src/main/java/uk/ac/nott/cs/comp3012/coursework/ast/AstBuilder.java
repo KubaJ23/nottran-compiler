@@ -8,16 +8,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 import uk.ac.nott.cs.comp3012.coursework.NottscriptBaseVisitor;
 import uk.ac.nott.cs.comp3012.coursework.NottscriptParser;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Dimension.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.Literal.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.IntrinsicType.VarType;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
 
 public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
@@ -39,7 +40,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitProgramDeclaration(NottscriptParser.ProgramDeclarationContext ctx) {
         String name = ctx.name.getText();
         String endName = ctx.endName.getText();
-        checkNameMismatchError(ctx.start, name, ctx.endName, endName);
+        checkNameMismatchError(ctx.start, name, endName);
 
         List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);
@@ -51,7 +52,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitFunctionDeclaration(NottscriptParser.FunctionDeclarationContext ctx) {
         String name = ctx.name.getText();
         String endName = ctx.endName.getText();
-        checkNameMismatchError(ctx.start, name, ctx.endName, endName);
+        checkNameMismatchError(ctx.start, name, endName);
         List<String> params = visitANameList(ctx.nameList());
 
         String resultName = (ctx.result != null) ? ctx.result.getText() : null;
@@ -66,7 +67,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitSubroutineDeclaration(NottscriptParser.SubroutineDeclarationContext ctx) {
         String name = ctx.name.getText();
         String endName = ctx.endName.getText();
-        checkNameMismatchError(ctx.start, name, ctx.endName, endName);
+        checkNameMismatchError(ctx.start, name, endName);
         List<String> params = visitANameList(ctx.nameList());
 
         List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
@@ -79,7 +80,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     public Ast visitDerivedTypeDeclaration(NottscriptParser.DerivedTypeDeclarationContext ctx) {
         String name = ctx.name.getText();
         String endName = ctx.endName.getText();
-        checkNameMismatchError(ctx.start, name, ctx.endName, endName);
+        checkNameMismatchError(ctx.start, name, endName);
 
         List<VariableDecl> fields = visitAndMap(ctx.derivedTypeDeclBlock().fields, VariableDecl.class);
 
@@ -108,7 +109,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     @Override
     public Ast visitIntegerType(NottscriptParser.IntegerTypeContext ctx) {
         List<Dimension> dims = visitAnArraySpec(ctx.arraySpec());
-        return new IntrinsicType(ctx.start, VarType.INTEGER, dims);
+        return new IntrinsicType(ctx.start, Type.Intrinsic.INTEGER, dims);
     }
 
     @Override
@@ -121,13 +122,13 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
     @Override
     public Ast visitCharType(NottscriptParser.CharTypeContext ctx) {
         List<Dimension> dims = visitAnArraySpec(ctx.arraySpec());
-        return new IntrinsicType(ctx.start, VarType.CHARACTER, dims);
+        return new IntrinsicType(ctx.start, Type.Intrinsic.CHARACTER, dims);
     }
 
     @Override
     public Ast visitLogicalType(NottscriptParser.LogicalTypeContext ctx) {
         List<Dimension> dims = visitAnArraySpec(ctx.arraySpec());
-        return new IntrinsicType(ctx.start, VarType.LOGICAL, dims);
+        return new IntrinsicType(ctx.start, Type.Intrinsic.LOGICAL, dims);
     }
 
     @Override
@@ -179,7 +180,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         String var = ctx.loopVar.getText();
         Expression start = (Expression) visit(ctx.start);
         Expression end = (Expression) visit(ctx.end);
-        Expression step = (ctx.step != null) ? (Expression) visit(ctx.step) : null;
+        Expression step = (ctx.step != null) ? (Expression) visit(ctx.step) : new IntLiteral(ctx.getStart(), 1);
         List<Statement> body = visitAndMap(ctx.statementBlock().stmts, Statement.class);
         return new DoLoopStmt(ctx.getStart(), var, start, end, step, body);
     }
@@ -335,7 +336,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitRealLit(NottscriptParser.RealLitContext ctx) {
-        throw new UnsupportedOperationException("Reals are not supported yet.");
+        throw new CompilerException(ctx.start, "Reals are not supported.");
 //        String text = ctx.REAL_LITERAL().getText();
 //        return new RealLiteral(ctx.start, Double.parseDouble(text));
     }
@@ -356,42 +357,34 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
     @Override
     public Ast visitBozLitB(NottscriptParser.BozLitBContext ctx) {
-        return new BozLiteral(ctx.start, ctx.B_LITERAL().getText(), 'b');
+        String text = ctx.B_LITERAL().getText();
+        String val = text.substring(2, text.length() - 1);
+        int intVal = Integer.parseInt(val, 2);
+        return new IntLiteral(ctx.start, intVal);
     }
 
     @Override
     public Ast visitBozLitO(NottscriptParser.BozLitOContext ctx) {
-        return new BozLiteral(ctx.start, ctx.O_LITERAL().getText(), 'o');
+        String text = ctx.O_LITERAL().getText();
+        String val = text.substring(2, text.length() - 1);
+        int intVal = Integer.parseInt(val, 8);
+        return new IntLiteral(ctx.start, intVal);
     }
 
     @Override
     public Ast visitBozLitZ(NottscriptParser.BozLitZContext ctx) {
-        return new BozLiteral(ctx.start, ctx.Z_LITERAL().getText(), 'z');
+        String text = ctx.Z_LITERAL().getText();
+        String val = text.substring(2, text.length() - 1);
+        int intVal = Integer.parseInt(val, 16);
+        return new IntLiteral(ctx.start, intVal);
     }
 
     // ==================================================================
     // Helpers
     // ==================================================================
 
-    private void checkNameMismatchError(Token startToken, String startName, Token endToken, String endName) {
-        if (startName.equals(endName)) return;
-
-        String location = "line " + endToken.getLine() + ":" + endToken.getCharPositionInLine();
-        String message = "error: Mismatched end name.";
-
-        String context = "Found '" + endName + "', but expected '" + startName + "' to match declaration on line " + startToken.getLine() + ".";
-
-        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
-    }
-
-    private void checkIllegalDimensionsError(Token startToken, List<Dimension> dimensions) {
-        if (dimensions.isEmpty() || dimensions.stream().allMatch(dimension -> dimension instanceof LiteralDim) || dimensions.stream().allMatch(dimension -> dimension instanceof PointerDim)) return;
-        String location = "line " + startToken.getLine() + ":" + startToken.getCharPositionInLine();
-        String message = "error: Invalid Array Dimension.";
-
-        String context = "All array dimensions must be either an integer or undefined.";
-
-        throw new IllegalArgumentException(location + ": " + message + "\n" + context);
+    private void checkNameMismatchError(Token startToken, String startName, String endName) {
+        if (!startName.equals(endName)) throw new CompilerException(startToken, "Declaration name '" + startName + "' does not match end name '" + endName + "'.");
     }
 
     private <T extends Ast> List<T> visitAndMap(List<? extends ParseTree> nodes, Class<T> clazz) {
@@ -415,13 +408,15 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 
         List<Dimension> result = ctx.dimList().dim().stream().map(dimCtx -> {
             if (dimCtx.INT_LITERAL() != null) {
-                return new LiteralDim(Integer.parseInt(dimCtx.INT_LITERAL().getText()));
+                return new Dimension.Known(Integer.parseInt(dimCtx.INT_LITERAL().getText()));
             } else {
-                return new PointerDim();
+                return new Dimension.Unknown();
             }
         }).collect(Collectors.toList());
 
-        checkIllegalDimensionsError(ctx.dimList().start, result);
-        return result;
+        if (result.isEmpty() || result.stream().allMatch(dimension -> dimension instanceof Dimension.Known) || result.stream().allMatch(dimension -> dimension instanceof Dimension.Unknown)) {
+            return result;
+        }
+        throw new CompilerException(ctx.dimList().start, "All array dimensions must be either an integer or unknown.");
     }
 }
