@@ -207,7 +207,7 @@ public class AstPrinter extends AstBaseVisitor<Void> {
         return switch (node) {
             case CompilationUnit cu -> "CompilationUnit";
             case ProgramUnit.ProgramDecl pd -> "Program: " + pd.name();
-            case ProgramUnit.FunctionDecl fd -> "Function: " + fd.name() + "(Params: " + String.join(", ", fd.parameterNames()) + ")" + (fd.resultName() != null ? " Result: " + fd.resultName() : "");
+            case ProgramUnit.FunctionDecl fd -> "Function: " + fd.name() + "(Params: " + String.join(", ", fd.parameterNames()) + ")" + " Result: " + fd.resultName();
             case ProgramUnit.SubroutineDecl sd -> "Subroutine: " + sd.name() + "(Params: " + String.join(", ", sd.parameterNames()) + ")";
             case ProgramUnit.DerivedTypeDecl dtd -> "Type: " + dtd.name();
             case VariableDecl vd -> "VarDecl: " + String.join(", ", vd.names()) + (vd.isPointer() ? " :: POINTER" : " ::");

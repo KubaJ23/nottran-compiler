@@ -20,4 +20,12 @@ public record TacInstr(UUID id, TacOp op, TacParam dst, TacParam src1, TacParam 
     public TacInstr(TacOp op, TacParam dst, TacParam src1, TacParam src2) {
         this(UUID.randomUUID(), op, dst, src1, src2);
     }
+
+    @Override
+    public String toString() {
+        if (op == TacOp.LABEL) {
+            return String.format("--- %s ---", dst);
+        }
+        return String.format("%s = %s %s %s", dst, src1, op, src2);
+    }
 }

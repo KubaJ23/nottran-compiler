@@ -55,7 +55,7 @@ public class AstBuilder extends NottscriptBaseVisitor<Ast> {
         checkNameMismatchError(ctx.start, name, endName);
         List<String> params = visitANameList(ctx.nameList());
 
-        String resultName = (ctx.result != null) ? ctx.result.getText() : null;
+        String resultName = (ctx.result != null) ? ctx.result.getText() : name;
 
         List<VariableDecl> decls = visitAndMap(ctx.declarationBlock().decls, VariableDecl.class);
         List<Statement> stmts = visitAndMap(ctx.statementBlock().stmts, Statement.class);

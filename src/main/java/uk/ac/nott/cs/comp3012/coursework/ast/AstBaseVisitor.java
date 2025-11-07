@@ -6,7 +6,7 @@ import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.*;
 
-public abstract class AstBaseVisitor<T> implements AstVisitor<T> {
+public abstract class AstBaseVisitor<T> {
 
     public final T visit(Ast node) {
         return switch (node) {

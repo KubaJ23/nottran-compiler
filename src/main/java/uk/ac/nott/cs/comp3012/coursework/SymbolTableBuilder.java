@@ -92,7 +92,7 @@ public class SymbolTableBuilder extends AstBaseVisitor<Void> {
             paramTypes.add(paramSymbol.type());
         }
 
-        String resultName = (fd.resultName() != null) ? fd.resultName() : fd.name();
+        String resultName = fd.resultName();
         Symbol resultSymbol = currentScope.getSymbolLocal(resultName).orElseThrow(() -> new CompilerException(fd.startToken(), "Result variable '" + resultName + "' is not declared in function '" + fd.name() + "'."));
         Type returnType = resultSymbol.type();
 
@@ -146,6 +146,12 @@ public class SymbolTableBuilder extends AstBaseVisitor<Void> {
         Type baseType = resolveTypeSpec(vd.type());
         if (vd.isPointer()) {
             baseType = new Type.PointerType(baseType);
+        } else {
+            if (baseType instanceof Type.ArrayType arrType) {
+                if (arrType.dimensions().stream().anyMatch(d -> d instanceof Dimension.Unknown)) {
+                    throw new CompilerException(vd.startToken(), "Array with unknown dimensions (*) must be declared as a POINTER.");
+                }
+            }
         }
         for (String name : vd.names()) {
             Symbol varSymbol = new Symbol(name, baseType, Symbol.Kind.VARIABLE);
