@@ -184,20 +184,36 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
         Type lType = typeMap.get(s.lvalue());
 
         if (s.lvalue() instanceof NameExpr nameExpr) {
-            // Simple assignment: a = rvalue
-            // Check for derived type copy
-            if (lType instanceof Type.DerivedType dt) {
+            // L-value is a simple name, e.g., "x = ..." or "p = ..."
+
+            if (lType instanceof Type.PointerType pt) {
+                // --- NEW LOGIC (RULE 2) ---
+                // This is an implicit dereference: *p = rvalue
+                // This is only valid for simple pointers (not array pointers)
+                if (pt.baseType() instanceof Type.ArrayType) {
+                    throw new CompilerException(s.startToken(), "Cannot assign to an array pointer without an index. Use p(i) = ...");
+                }
+
+                // Generate: INDEX_WRITE p, 0, rvalue
+                TacParam.Variable t_zero = newTemp();
+                add(TacOp.LOAD_CONST, t_zero, new TacParam.Value(0), null);
+                add(TacOp.INDEX_WRITE, new TacParam.Variable(nameExpr.name()), t_zero, rvalue);
+
+            } else if (lType instanceof Type.DerivedType dt) {
+                // Derived type copy: a = b
                 generateRecursiveCopy(new TacParam.Variable(nameExpr.name()), rvalue, dt);
             } else {
+                // Standard assignment: x = rvalue
                 add(TacOp.ASSIGN, new TacParam.Variable(nameExpr.name()), rvalue, null);
             }
+
         } else if (s.lvalue() instanceof FieldAccessExpr fieldExpr) {
             // Field write: base.%field = rvalue
             TacParam base = visit(fieldExpr.base());
             TacParam fieldName = new TacParam.ConstString(fieldExpr.fieldName());
             add(TacOp.FIELD_WRITE, base, fieldName, rvalue);
         } else if (s.lvalue() instanceof CallOrIndexExpr indexExpr) {
-            // Array write: base[offset] = rvalue
+            // Array/Pointer Index write: p(i) = rvalue
             TacParam base = visit(indexExpr.base());
             TacParam offset = computeArrayIndex(indexExpr);
             add(TacOp.INDEX_WRITE, base, offset, rvalue);
@@ -233,11 +249,22 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
 
     @Override
     public TacParam visitCallStmt(CallStmt s) {
-        // 1. Evaluate all arguments and push them as PARAMS
+        // --- NEW LOGIC (EXCEPTION 2) ---
+        // We must check arguments *before* visiting them.
         for (Expression arg : s.arguments()) {
+            if (arg instanceof NameExpr nameExpr) {
+                Type argType = typeMap.get(arg);
+                if (argType instanceof Type.PointerType) {
+                    // This is a pointer. Per Exception 2, pass its value (address) directly.
+                    add(TacOp.PARAM, null, new TacParam.Variable(nameExpr.name()), null);
+                    continue; // Skip the normal visit()
+                }
+            }
+            // Not a pointer NameExpr, visit normally to get its value
             add(TacOp.PARAM, null, visit(arg), null);
         }
-        // 2. Add the CALL instruction. dst is null (no return value).
+
+        // Add the CALL instruction. dst is null (no return value).
         add(TacOp.CALL, null, new TacParam.Label(s.subroutineName()), new TacParam.Value(s.arguments().size()));
         return null;
     }
@@ -313,8 +340,23 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
     public TacParam visitReadStmt(ReadStmt s) {
         for (Expression lval : s.lvalues()) {
             if (lval instanceof NameExpr name) {
-                // Simple case: read x
-                add(TacOp.READ, null, new TacParam.Variable(name.name()), null);
+                Type lType = typeMap.get(lval);
+                if (lType instanceof Type.PointerType pt) {
+                    // --- NEW LOGIC (RULE 1/2) ---
+                    // Read into a temp, then store at pointer's address
+                    if (pt.baseType() instanceof Type.ArrayType) {
+                        throw new CompilerException(s.startToken(), "Cannot read into an array pointer without an index. Use read(p(i)).");
+                    }
+                    TacParam.Variable tempVal = newTemp();
+                    add(TacOp.READ, null, tempVal, null); // read(t0)
+
+                    TacParam.Variable t_zero = newTemp();
+                    add(TacOp.LOAD_CONST, t_zero, new TacParam.Value(0), null);
+                    add(TacOp.INDEX_WRITE, new TacParam.Variable(name.name()), t_zero, tempVal); // p[0] = t0
+                } else {
+                    // Simple case: read x
+                    add(TacOp.READ, null, new TacParam.Variable(name.name()), null);
+                }
             } else {
                 // Complex case: read m(i) or read s%field
                 TacParam.Variable tempVal = newTemp();
@@ -373,9 +415,27 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
                 break;
 
             case Type.PointerType pt:
-                // Per requirement: print "POINTER:" and the address
-                generateWriteConstantString("POINTER: ");
-                add(TacOp.WRITE, null, param, null); // Print the address (as an int)
+                // --- NEW LOGIC (RULE 1) ---
+                // This is an implicit dereference.
+                // We print what the pointer *points to*.
+                // (Unless it's an array pointer, which has no value without index)
+
+                if (pt.baseType() instanceof Type.ArrayType) {
+                    // This is an array pointer. Per your rule, it only has value
+                    // with brackets. So we just print the address.
+                    generateWriteConstantString("POINTER_TO_ARRAY: ");
+                    add(TacOp.WRITE, null, param, null); // Print the address (as an int)
+                } else {
+                    // This is a simple pointer. Dereference and print.
+                    TacParam.Variable t_zero = newTemp();
+                    add(TacOp.LOAD_CONST, t_zero, new TacParam.Value(0), null);
+
+                    TacParam.Variable t_val = newTemp();
+                    add(TacOp.INDEX_READ, t_val, param, t_zero); // t_val = param[0]
+
+                    // Recursively write the base type (e.g., if it's a pointer to a struct)
+                    generateWriteForType(pt.baseType(), t_val);
+                }
                 break;
 
             case Type.ArrayType arrType:
@@ -588,6 +648,9 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
 
     @Override
     public TacParam visitAllocateStmt(AllocateStmt s) {
+        // --- THIS IS EXCEPTION 1 ---
+        // This is the *only* place that writes to the pointer variable 'p'
+
         TacParam.Variable ptrVar = new TacParam.Variable(s.pointerName());
 
         Symbol ptrSymbol = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow(() -> new CompilerException(s.startToken(), "Cannot find symbol for ALLOCATE"));
@@ -614,6 +677,7 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
         TacParam.Variable t_total_size = newTemp();
         add(TacOp.MUL, t_total_size, t_num_elements, t_base_size);
 
+        // 'ptrVar' is the *destination* of the ALLOCATE op.
         add(TacOp.ALLOCATE, ptrVar, t_total_size, null);
         return null;
     }
@@ -688,15 +752,27 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
         if (baseAstType instanceof Type.FunctionType) {
             // --- Function Call ---
             TacParam.Variable tempResult = newTemp();
+
+            // --- NEW LOGIC (EXCEPTION 2) ---
             for (Expression arg : e.arguments()) {
+                if (arg instanceof NameExpr nameExpr) {
+                    Type argType = typeMap.get(arg);
+                    if (argType instanceof Type.PointerType) {
+                        // Pass pointer's address value directly
+                        add(TacOp.PARAM, null, new TacParam.Variable(nameExpr.name()), null);
+                        continue;
+                    }
+                }
+                // Visit normally
                 add(TacOp.PARAM, null, visit(arg), null);
             }
+
             TacParam funcName = visit(e.base());
             add(TacOp.CALL, tempResult, funcName, new TacParam.Value(e.arguments().size()));
             return tempResult;
 
         } else if (baseAstType instanceof Type.ArrayType || baseAstType instanceof Type.PointerType) {
-            // --- Array Index Read ---
+            // --- Array Index Read (Explicit Dereference) ---
             TacParam.Variable tempResult = newTemp();
             TacParam base = visit(e.base());
             TacParam offset = computeArrayIndex(e);
@@ -752,7 +828,39 @@ public class TacGenerator extends AstBaseVisitor<TacParam> {
 
     @Override
     public TacParam visitNameExpr(NameExpr e) {
-        return new TacParam.Variable(e.name());
+        // --- NEW LOGIC (RULE 1) ---
+        // This is a use of a variable name *without* brackets.
+
+        Type type = typeMap.get(e);
+        TacParam.Variable var = new TacParam.Variable(e.name());
+
+        if (type instanceof Type.PointerType pt) {
+            // It's a pointer. We must check if it's a simple pointer or array pointer.
+            if (pt.baseType() instanceof Type.ArrayType) {
+                // This is an array pointer (e.g., "p_arr").
+                // Per your rules, using it without brackets is an error,
+                // *unless* it's an argument to a call (handled in visitCallStmt)
+                // or on the LHS of an assignment (handled in visitAssignmentStmt).
+
+                // As an R-value, we return the pointer's address value.
+                // This allows `p1 = p2` to work.
+                return var;
+            } else {
+                // This is a simple pointer (e.g., "p" of type "integer pointer").
+                // Per RULE 1, we must implicitly dereference it.
+                // Generate: t_val = p[0]
+
+                TacParam.Variable t_zero = newTemp();
+                add(TacOp.LOAD_CONST, t_zero, new TacParam.Value(0), null);
+
+                TacParam.Variable t_val = newTemp();
+                add(TacOp.INDEX_READ, t_val, var, t_zero);
+                return t_val;
+            }
+        }
+
+        // Not a pointer, just return the variable name.
+        return var;
     }
 
     // --- Literals ---

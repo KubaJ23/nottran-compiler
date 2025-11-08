@@ -18,6 +18,18 @@ public class SymbolTable {
         this.depth = (parent == null) ? 0 : parent.depth + 1;
     }
 
+    public int getDepth() {
+        return depth;
+    }
+
+    public Map<String, Symbol> getSymbols() {
+        return symbols;
+    }
+
+    public SymbolTable getParent() {
+        return parent;
+    }
+
     public void add(Symbol symbol, Token token) {
         if (symbols.containsKey(symbol.name())) {
             throw new CompilerException(token, "Symbol '" + symbol.name() + "' is already defined in this scope.");

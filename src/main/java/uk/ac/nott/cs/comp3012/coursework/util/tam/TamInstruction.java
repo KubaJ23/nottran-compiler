@@ -17,8 +17,7 @@ public interface TamInstruction {
     record Instruction(TamOpcode op, TamRegister r, int n, int d) implements TamInstruction {
 
         public byte[] toByteArray() {
-            return new byte[]{(byte) ((op.value << 4) | r.value), (byte) n,
-                    (byte) ((d & 0xff00) >>> 8), (byte) (d & 0xff),};
+            return new byte[]{(byte) ((op.value << 4) | r.value), (byte) n, (byte) ((d & 0xff00) >>> 8), (byte) (d & 0xff),};
         }
     }
 

@@ -333,8 +333,12 @@ public class TypeChecker extends AstBaseVisitor<Type> {
         }
 
         for (int i = 0; i < expectedTypes.size(); i++) {
-            Type argType = visit(actualArgs.get(i));
-            checkExpectedType(actualArgs.get(i).startToken(), expectedTypes.get(i), argType);
+            Type argType = unwrapPointer(visit(actualArgs.get(i)));
+            Type expected = expectedTypes.get(i);
+
+            if (!expected.equals(argType)) {
+                throw new CompilerException(actualArgs.get(i).startToken(), "Type mismatch. Expected '" + expected + "' but found '" + argType + "'.");
+            }
         }
     }
 

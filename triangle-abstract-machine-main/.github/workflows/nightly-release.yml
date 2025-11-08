@@ -1,0 +1,98 @@
+name: Nightly build
+
+on:
+  schedule:
+    # Runs at 23:55 UTC every day
+    - cron: "55 23 * * *"
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  check_date:
+    name: Check for changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.has_changes.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get latest commit
+        run: echo ${{ github.sha }}
+
+      - id: has_changes
+        continue-on-error: true
+        name: Check age of commit
+        run: |
+          [[ $(git rev-list --after="24 hours" ${{ github.sha }} | wc -l) -gt 0 ]]
+          if [[ $? -eq 0 ]]; then echo "has_changes=true" >> $GITHUB_OUTPUT; else echo "has_changes=false" >> $GITHUB_OUTPUT; fi
+
+  build:
+    name: Build on ${{ matrix.os }}
+    needs: check_date
+    if: ${{ needs.check_date.outputs.has_changes != 'false' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+            artifact_name: linux-build
+            artifact_path: build/src/tam
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+            artifact_name: windows-build
+            artifact_path: build\src\Release\tam.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >
+          cmake -B build
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=Release
+          -S ${{ github.workspace }}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+
+  release:
+    name: Create nightly release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly-${{ steps.date.outputs.date }}
+          name: Nightly release ${{ steps.date.outputs.date }}
+          body: |
+            Automated nightly build for ${{ steps.date.outputs.date }}
+          draft: false
+          prerelease: true
+          files: |
+            artifacts/linux-build/tam
+            artifacts/windows-build/tam.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
