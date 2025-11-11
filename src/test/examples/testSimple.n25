@@ -3,5 +3,15 @@ program lexical_test
     a = 1
     b = 2
 
-    write a + b
+    write max(a, b)
 end program lexical_test
+
+function max(a, b) result (max_val)
+  integer :: a, b, max_val
+
+  if (a > b) then
+    max_val = a
+  else
+    max_val = b
+  end if
+end function max
