@@ -46,6 +46,7 @@ public class TamAssembler {
                     labelAddressMap.put(l.name(), currentAddress);
                     break;
                 case IntermediateTam.Instr i:
+                    break;
                 case IntermediateTam.Jump j:
                     // All instructions take up 1 address slot (4 bytes)
                     currentAddress++;

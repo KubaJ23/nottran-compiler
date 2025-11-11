@@ -55,7 +55,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     }
 
     private void callPrimitive(Primitives prim, int n) {
-        ir.add(new IntermediateTam.Instr(TamOpcode.CALL, TamRegister.PB, n, prim.offset));
+        add(TamOpcode.CALL, TamRegister.PB, n, prim.offset);
     }
 
     private void addJump(String label) {
@@ -91,21 +91,6 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         }
     }
 
-    private void visitForParameter(Expression e) {
-        if (e instanceof NameExpr ne) {
-            Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
-            MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
-            Type type = sym.type();
-            int size = addr.size();
-
-            if (type instanceof Type.PointerType(Type baseType) && !(baseType instanceof Type.ArrayType)) {
-                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // size=1
-                return;
-            }
-        }
-        visit(e);
-    }
-
     private Type getBaseType(Ast node) {
         Type type = typeMap.get(node);
         if (type instanceof Type.PointerType pt) {
@@ -114,7 +99,6 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return type;
     }
 
-    // --- Program Units ---
 
     @Override
     public Void visitCompilationUnit(CompilationUnit cu) {
@@ -130,22 +114,17 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             }
         }
 
-        // 1. JUMP to main. TAM execution starts at CB (addr 0).
-        addJump("main");
+        // Padding here are the first code is not called from anywhere
+        add(TamOpcode.PUSH, null, 0, 3);
+        visit(cu.program());
 
-        // 2. Visit all functions/subroutines
         for (ProgramUnit unit : cu.programUnits()) {
             if (!(unit instanceof DerivedTypeDecl)) {
                 visit(unit);
             }
         }
 
-        // 3. Place main label
-        placeLabel("main");
-        visit(cu.program());
-
-        // 4. Halt
-        add(TamOpcode.HALT, TamRegister.CB, 0, 0);
+        add(TamOpcode.HALT, null, 0, 0);
 
         scopeStack.pop();
         return null;
@@ -157,7 +136,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         int localDataSize = layoutManager.getLocalDataSize(scopeStack.peek());
         if (localDataSize > 0) {
-            add(TamOpcode.PUSH, TamRegister.CB, 0, localDataSize);
+            add(TamOpcode.PUSH, null, 0, localDataSize);
         }
 
         visitStatementList(pd.statements());
@@ -173,14 +152,13 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         int localDataSize = layoutManager.getLocalDataSize(scopeStack.peek());
         if (localDataSize > 0) {
-            add(TamOpcode.PUSH, TamRegister.CB, 0, localDataSize);
+            add(TamOpcode.PUSH, null, 0, localDataSize);
         }
 
         visitStatementList(fd.statements());
 
-        // --- Implicit Return ---
         SymbolTable scope = scopeStack.peek();
-        String resultName = (fd.resultName() != null) ? fd.resultName() : fd.name();
+        String resultName = fd.resultName();
         Symbol resultSym = scope.getSymbolLocal(resultName).orElseThrow();
         MemoryLayoutManager.TamAddress resultAddr = layoutManager.getAddress(resultSym);
         int resultSize = resultAddr.size();
@@ -188,9 +166,8 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         // Load the result value onto the stack
         add(TamOpcode.LOAD, TamRegister.LB, resultSize, resultAddr.offset());
 
-        // Add RETURN instruction
         int paramDataSize = layoutManager.getParameterDataSize(scope);
-        add(TamOpcode.RETURN, TamRegister.CB, resultSize, paramDataSize);
+        add(TamOpcode.RETURN, null, resultSize, paramDataSize);
 
         scopeStack.pop();
         return null;
@@ -203,27 +180,30 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         int localDataSize = layoutManager.getLocalDataSize(scopeStack.peek());
         if (localDataSize > 0) {
-            add(TamOpcode.PUSH, TamRegister.CB, 0, localDataSize);
+            add(TamOpcode.PUSH, null, 0, localDataSize);
         }
 
         visitStatementList(sd.statements());
 
-        // --- Implicit Return ---
         int paramDataSize = layoutManager.getParameterDataSize(scopeStack.peek());
-        add(TamOpcode.RETURN, TamRegister.CB, 0, paramDataSize); // n=0 (no result)
+        add(TamOpcode.RETURN, null, 0, paramDataSize); // n=0 (no result)
 
         scopeStack.pop();
         return null;
     }
 
-    // --- Statements ---
+    // Statements
 
     @Override
     public Void visitAssignmentStmt(AssignmentStmt s) {
         // 1. Evaluate r-value, leave its value(s) on the stack
+        // This will use visitNameExpr, which handles the default
+        // implicit dereference for any pointers on the right-hand side.
         visit(s.rvalue());
 
         // 2. Get the *address* of the l-value, leave it on the stack
+        // This will use visitForAddress, which handles the implicit
+        // dereference for any pointer on the left-hand side.
         visitForAddress(s.lvalue());
 
         // 3. Store
@@ -232,20 +212,17 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
-    // In TamGenerator.java, REPLACE the old visitCallStmt
-
     @Override
     public Void visitCallStmt(CallStmt s) {
-        // 1. Push arguments using the new parameter helper
+        // 1. Push arguments
         for (Expression arg : s.arguments()) {
-            visitForParameter(arg); // <-- THE FIX
+            // EXCEPTION 1: Use special helper for parameters
+            visitForParameter(arg);
         }
         // 2. Call (static call, use LB as static link [n=8])
         addCall(routineLabels.get(s.subroutineName()));
         return null;
     }
-
-
 
     @Override
     public Void visitIfSimpleStmt(IfSimpleStmt s) {
@@ -333,6 +310,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             if (baseType != Type.Intrinsic.INTEGER) {
                 throw new CompilerException(lval.startToken(), "READ only supports INTEGER variables.");
             }
+            // visitForAddress handles implicit deref for pointer l-values
             visitForAddress(lval); // Stack: [&lval]
             callPrimitive(Primitives.GETINT, 1); // getint(a)
         }
@@ -342,12 +320,12 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     @Override
     public Void visitWriteStmt(WriteStmt s) {
         for (Expression e : s.expressions()) {
+            // visit(e) handles implicit deref for pointer r-values
             visit(e); // Stack: [value]
             Type baseType = getBaseType(e);
             if (baseType == Type.Intrinsic.INTEGER || baseType == Type.Intrinsic.LOGICAL) {
                 callPrimitive(Primitives.PUTINT, 1);
             } else if (baseType == Type.Intrinsic.CHARACTER) {
-                // This requires a new helper function
                 generateWriteString();
             } else {
                 throw new CompilerException(e.startToken(), "Cannot WRITE complex types (arrays/structs) directly.");
@@ -359,13 +337,6 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     /**
      * Helper to write a string. Assumes string heap address is on the stack.
-     * Implements:
-     * len = s_ptr[0]
-     * i = 1
-     * while (i <= len)
-     * char = s_ptr[i]
-     * put(char)
-     * i = i + 1
      */
     private void generateWriteString() {
         String loopStart = newLabel("write_str_start");
@@ -373,7 +344,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         // Stack: [s_ptr]
         add(TamOpcode.LOADL, TamRegister.CB, 0, 0); // Stack: [s_ptr, 0]
-        callPrimitive(Primitives.ADD, 2); // Stack: [s_ptr] (for safety, ensure it's an address)
+        callPrimitive(Primitives.ADD, 2); // Stack: [s_ptr]
         add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // Stack: [s_ptr, s_ptr] (dup)
 
         // Get len = s_ptr[0]
@@ -416,44 +387,49 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     @Override
     public Void visitAllocateStmt(AllocateStmt s) {
+        // EXCEPTION 2: ALLOCATE p
+
+        // 1. Compute total size
         Symbol ptrSymbol = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow();
         Type.PointerType pt = (Type.PointerType) ptrSymbol.type();
         int baseSize = layoutManager.getSize(pt.baseType());
 
         if (s.dimensions().isEmpty()) {
-            add(TamOpcode.LOADL, TamRegister.CB, 0, baseSize); // n=1, d=size
+            add(TamOpcode.LOADL, TamRegister.CB, 0, baseSize);
         } else {
-            // Calculate size: dim1 * dim2 * ... * baseSize
             add(TamOpcode.LOADL, TamRegister.CB, 0, baseSize);
             for (Expression dimExpr : s.dimensions()) {
-                visit(dimExpr); // Pushes dim value
+                visit(dimExpr);
                 callPrimitive(Primitives.MULT, 2);
             }
         }
         // Stack: [total_size]
         callPrimitive(Primitives.NEW, 1); // Stack: [new_heap_addr]
 
-        // Store result in pointer variable (which is always 1 word)
-        visitForAddress(new NameExpr(s.startToken(), s.pointerName()));
-        // Stack: [new_heap_addr, &ptrVar]
-        add(TamOpcode.STOREI, TamRegister.CB, 1, 0);
+        // 2. Store result in pointer variable 'p'
+        // This is an exception, we need the *stack address* of 'p'
+        MemoryLayoutManager.TamAddress ptrAddr = layoutManager.getAddress(ptrSymbol);
+        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset()); // Pushes &p
+        // Stack: [new_heap_addr, &p]
+
+        add(TamOpcode.STOREI, TamRegister.CB, 1, 0); // Store pointer
         return null;
     }
 
     @Override
     public Void visitDeallocateStmt(DeallocateStmt s) {
-        // TAM's `dispose` primitive is `dispose n, a`
-        // We need to know the size 'n' that was allocated.
-        // This language spec doesn't store it, which is a problem.
-        // We will *assume* the size is stored at address `a-1`
-        // or just guess '1'. Let's just guess 1 for simplicity.
+        // EXCEPTION 3: DEALLOCATE p
 
-        add(TamOpcode.LOADL, TamRegister.CB, 0, 1); // n=1 (size, A GUESS)
+        // We assume 'dispose' primitive is `dispose(n, a)`
+        // We will guess n=1 as the spec is ambiguous.
+        add(TamOpcode.LOADL, TamRegister.CB, 0, 1); // n=1 (size guess)
 
-        // Push pointer value
-        visit(new NameExpr(s.startToken(), s.pointerName())); // Pushes heap_addr
+        // This is an exception. We must push the pointer's real value
+        // (the heap address) without dereferencing it.
+        Symbol sym = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow();
+        MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+        add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
 
-        // Call dispose
         callPrimitive(Primitives.DISPOSE, 2); // n=2 (size, addr)
         return null;
     }
@@ -498,14 +474,12 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     @Override
     public Void visitFieldAccessExpr(FieldAccessExpr e) {
         // R-Value: s%field
+        // This is a "default use", so it implicitly dereferences.
         visitForAddress(e); // Pushes &s%field
         int size = layoutManager.getSize(typeMap.get(e));
         add(TamOpcode.LOADI, TamRegister.CB, size, 0);
         return null;
     }
-
-
-// In TamGenerator.java, REPLACE the old visitCallOrIndexExpr
 
     @Override
     public Void visitCallOrIndexExpr(CallOrIndexExpr e) {
@@ -514,13 +488,15 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         if (baseAstType instanceof Type.FunctionType) {
             // --- Function Call ---
             for (Expression arg : e.arguments()) {
-                visitForParameter(arg); // <-- THE FIX
+                // EXCEPTION 1: Use special helper for parameters
+                visitForParameter(arg);
             }
             String funcName = ((NameExpr) e.base()).name();
             addCall(routineLabels.get(funcName));
             // Result is left on the stack.
         } else {
             // --- Array/Pointer Index Read ---
+            // This is a "default use", so it implicitly dereferences.
             visitForAddress(e); // Pushes &arr(i) or &p(i)
             int size = layoutManager.getSize(typeMap.get(e));
             add(TamOpcode.LOADI, TamRegister.CB, size, 0);
@@ -528,28 +504,24 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
+    /**
+     * visitNameExpr: This is the "default r-value" case.
+     * It MUST handle implicit dereferencing.
+     */
     @Override
     public Void visitNameExpr(NameExpr e) {
         Symbol sym = scopeStack.peek().getSymbol(e.name()).orElseThrow();
         MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
         Type type = sym.type();
-        int size = addr.size();
 
-        if (type instanceof Type.PointerType pt) {
-            if (pt.baseType() instanceof Type.ArrayType) {
-                // Array pointer 'p_arr'. Push its value (the heap address).
-                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // size=1
-            } else {
-                // Simple pointer 'p'. Push the value it points to (implicit deref).
-                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
-                add(TamOpcode.LOADI, TamRegister.CB, 1, 0); // Pushes value at heap_addr
-            }
-        } else if (type instanceof Type.ArrayType || type instanceof Type.DerivedType) {
-            // Static array 'arr' or struct 's'. Push its *value* (all n words).
-            add(TamOpcode.LOAD, TamRegister.LB, size, addr.offset());
+        if (type instanceof Type.PointerType) {
+            // DEFAULT RULE: Implicitly dereference.
+            // This is NOT an exception.
+            add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
+            add(TamOpcode.LOADI, TamRegister.CB, 1, 0); // Pushes value at heap_addr
         } else {
-            // Simple variable 'x'
-            add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // size=1
+            // Not a pointer. Load its value (which could be 1 or N words).
+            add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
         }
         return null;
     }
@@ -604,25 +576,29 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     /**
      * Emits code to push the *address* of an l-value onto the stack.
+     * This is the "default l-value" case, so it MUST handle
+     * implicit dereferencing.
      */
     private void visitForAddress(Expression e) {
         if (e instanceof NameExpr ne) {
             Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
             MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
 
-            if (sym.type() instanceof Type.PointerType pt && !(pt.baseType() instanceof Type.ArrayType)) {
-                // LValue is 'p'. We want the *heap address* it stores (implicit deref).
+            if (sym.type() instanceof Type.PointerType) {
+                // DEFAULT RULE: Implicitly dereference.
+                // Get the heap address, which is where we will store.
                 add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
             } else {
-                // LValue is 'x' or 'arr' or 'p_arr'. We want its stack address.
+                // Not a pointer. Get the stack address.
                 add(TamOpcode.LOADA, TamRegister.LB, 0, addr.offset());
             }
 
         } else if (e instanceof FieldAccessExpr fe) {
             // LValue is s%field
-            visitForAddress(fe.base()); // Pushes address of 's'
+            // This is a default use, so implicitly dereference base 's' if it's a pointer.
+            visitForAddress(fe.base()); // Pushes address of 's' (or heap addr if 's' is ptr)
 
-            Type baseType = getBaseType(fe.base());
+            Type baseType = getBaseType(fe.base()); // Gets 's' type, not 's pointer' type
             if (!(baseType instanceof Type.DerivedType dt)) {
                 throw new CompilerException(fe.startToken(), "Base of field access is not a derived type.");
             }
@@ -652,6 +628,31 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         } else {
             throw new CompilerException(e.startToken(), "This expression is not an assignable lvalue.");
+        }
+    }
+
+    /**
+     * Pushes the value of an expression for use as a parameter.
+     * This is the same as visit(), but it does *not* implicitly dereference
+     * simple pointers (e.g., "integer pointer :: p").
+     */
+    private void visitForParameter(Expression e) {
+        if (e instanceof NameExpr ne) {
+            Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
+            MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+
+            if (sym.type() instanceof Type.PointerType) {
+                // EXCEPTION 1: Pass-as-parameter.
+                // Push the pointer's real value (heap addr). DO NOT DEREFERENCE.
+                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
+            } else {
+                // Not a pointer. Just visit normally for its value.
+                visit(e);
+            }
+        } else {
+            // Not a simple name (e.g., an expression like "x+1").
+            // Visit normally for its value.
+            visit(e);
         }
     }
 }

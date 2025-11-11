@@ -2,9 +2,7 @@ package uk.ac.nott.cs.comp3012.coursework;
 
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.SymbolTable;
-import uk.ac.nott.cs.comp3012.coursework.tam.MemoryLayoutManager;
-import uk.ac.nott.cs.comp3012.coursework.tam.TamGenerator;
-import uk.ac.nott.cs.comp3012.coursework.tam.TamInstruction;
+import uk.ac.nott.cs.comp3012.coursework.tam.*;
 import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 import java.util.List;
@@ -12,25 +10,19 @@ import java.util.Map;
 
 public class Backend implements Compiler.Backend {
     @Override
-    public byte[] runBackend(Ast program, Map<Ast, SymbolTable> scopeMap, Map<Ast, Type> typeMap) {// 1. Create the MemoryLayoutManager (or AddressManager)
-        // It uses the AST and scopeMap from the frontend.
+    public byte[] runBackend(Ast program, Map<Ast, SymbolTable> scopeMap, Map<Ast, Type> typeMap) {
         MemoryLayoutManager layoutManager = new MemoryLayoutManager((Ast.CompilationUnit) program, scopeMap);
 
-        // 2. Create the TamGenerator
-        // Pass it all the frontend info + the new layout manager.
         TamGenerator tamGenerator = new TamGenerator(scopeMap, typeMap, layoutManager);
-
-        // 3. Visit the AST to generate instructions
         tamGenerator.visit(program);
+        List<IntermediateTam> intermediateCode = tamGenerator.getIntermediateCode();
 
-        // 4. Get the final, patched instruction list
-        List<TamInstruction.Instruction> tamInstructions = tamGenerator.getInstructions();
+        TamAssembler assembler = new TamAssembler(intermediateCode);
+        List<TamInstruction.Instruction> tamInstructions = assembler.assemble();
 
-        // 5. Print and convert to bytes (as before)
         System.out.println("--- TAM ---");
         int addr = 0;
         for (TamInstruction.Instruction instr : tamInstructions) {
-            // (Your existing print logic)
             System.out.printf("%04d: %-6s ", addr, instr.op());
             switch (instr.op()) {
                 case LOAD, STORE, CALL, JUMPIF:
@@ -57,7 +49,7 @@ public class Backend implements Compiler.Backend {
             }
             addr++;
         }
-        System.out.println("-----------");
+        System.out.println("-------------");
 
         TamInstruction.InstructionList instructionList = new TamInstruction.InstructionList(tamInstructions);
         return instructionList.toByteArray();
