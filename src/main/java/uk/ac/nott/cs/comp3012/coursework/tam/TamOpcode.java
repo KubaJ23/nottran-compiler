@@ -1,4 +1,4 @@
-package uk.ac.nott.cs.comp3012.coursework.util.tam;
+package uk.ac.nott.cs.comp3012.coursework.tam;
 
 public enum TamOpcode {
     LOAD(0),

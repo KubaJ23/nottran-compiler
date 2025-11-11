@@ -1,8 +1,9 @@
-package uk.ac.nott.cs.comp3012.coursework;
+package uk.ac.nott.cs.comp3012.coursework.ast;
 
 import org.antlr.v4.runtime.Token;
+import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -10,7 +11,7 @@ import java.util.stream.Collectors;
 public class SymbolTable {
 
     private final SymbolTable parent;
-    private final Map<String, Symbol> symbols = new HashMap<>();
+    private final Map<String, Symbol> symbols = new LinkedHashMap<>();
     private final int depth;
 
     public SymbolTable(SymbolTable parent) {

@@ -8,7 +8,7 @@ import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
 
 public class AstPrinter extends AstBaseVisitor<Void> {
 

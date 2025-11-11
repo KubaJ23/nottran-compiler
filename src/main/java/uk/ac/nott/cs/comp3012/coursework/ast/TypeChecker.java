@@ -1,14 +1,13 @@
-package uk.ac.nott.cs.comp3012.coursework;
+package uk.ac.nott.cs.comp3012.coursework.ast;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
+import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.AstBaseVisitor;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
 
 import java.util.HashMap;
 import java.util.List;
@@ -333,7 +332,7 @@ public class TypeChecker extends AstBaseVisitor<Type> {
         }
 
         for (int i = 0; i < expectedTypes.size(); i++) {
-            Type argType = unwrapPointer(visit(actualArgs.get(i)));
+            Type argType = visit(actualArgs.get(i));
             Type expected = expectedTypes.get(i);
 
             if (!expected.equals(argType)) {

@@ -17,8 +17,8 @@ import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Statement.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.TypeSpec.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.Literal.*;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 public class AstBuilder extends NottscriptBaseVisitor<Ast> {
 

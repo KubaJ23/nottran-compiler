@@ -4,7 +4,7 @@
     <module name="coursework.main" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="uk.ac.nott.cs.comp3012.coursework.*" />
+        <option name="PATTERN" value="uk.ac.nott.cs.comp3012.coursework.ast.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

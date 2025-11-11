@@ -1,11 +1,10 @@
-package uk.ac.nott.cs.comp3012.coursework;
+package uk.ac.nott.cs.comp3012.coursework.ast;
 
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
+import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.*;
-import uk.ac.nott.cs.comp3012.coursework.ast.AstBaseVisitor;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 import java.util.*;
 

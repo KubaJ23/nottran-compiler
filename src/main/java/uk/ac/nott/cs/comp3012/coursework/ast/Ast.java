@@ -1,8 +1,8 @@
 package uk.ac.nott.cs.comp3012.coursework.ast;
 
 import org.antlr.v4.runtime.Token;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Dimension;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
 
 import java.util.List;
 
@@ -67,8 +67,7 @@ public sealed interface Ast {
 
         record DerivedType(Token startToken, String name, List<Dimension> dimensions) implements TypeSpec {}
 
-        record IntrinsicType(Token startToken, Type.Intrinsic type, List<Dimension> dimensions) implements TypeSpec {
-        }
+        record IntrinsicType(Token startToken, Type.Intrinsic type, List<Dimension> dimensions) implements TypeSpec {}
     }
 
 

@@ -1,12 +1,8 @@
 package uk.ac.nott.cs.comp3012.coursework;
 
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATNConfigSet;
-import org.antlr.v4.runtime.dfa.DFA;
-import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
-import uk.ac.nott.cs.comp3012.coursework.ast.AstBuilder;
-import uk.ac.nott.cs.comp3012.coursework.ast.AstPrinter;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.ast.*;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 import java.util.*;
 

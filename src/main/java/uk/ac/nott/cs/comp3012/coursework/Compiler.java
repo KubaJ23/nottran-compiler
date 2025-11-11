@@ -8,7 +8,8 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
-import uk.ac.nott.cs.comp3012.coursework.util.types.Type;
+import uk.ac.nott.cs.comp3012.coursework.ast.SymbolTable;
+import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 /**
  * Base class for a compiler.

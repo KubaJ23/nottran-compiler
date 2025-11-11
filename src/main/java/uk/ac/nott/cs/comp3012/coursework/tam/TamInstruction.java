@@ -1,4 +1,4 @@
-package uk.ac.nott.cs.comp3012.coursework.util.tam;
+package uk.ac.nott.cs.comp3012.coursework.tam;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -6,11 +6,6 @@ import java.util.Collection;
 
 public interface TamInstruction {
 
-    /**
-     * Represent this instruction as an array of bytes in TAM bytecode format.
-     *
-     * @return the bytes
-     */
     byte[] toByteArray();
 
 

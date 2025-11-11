@@ -1,4 +1,4 @@
-package uk.ac.nott.cs.comp3012.coursework.util.types;
+package uk.ac.nott.cs.comp3012.coursework.types;
 
 import java.util.LinkedHashMap;
 import java.util.List;
