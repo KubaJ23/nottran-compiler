@@ -1,5 +1,6 @@
 package uk.ac.nott.cs.comp3012.coursework.tam;
 
+import org.antlr.v4.runtime.Token;
 import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.*;
@@ -9,6 +10,7 @@ import uk.ac.nott.cs.comp3012.coursework.ast.Ast.Expression.*;
 import uk.ac.nott.cs.comp3012.coursework.ast.AstBaseVisitor;
 import uk.ac.nott.cs.comp3012.coursework.ast.Symbol;
 import uk.ac.nott.cs.comp3012.coursework.ast.SymbolTable;
+import uk.ac.nott.cs.comp3012.coursework.types.Dimension;
 import uk.ac.nott.cs.comp3012.coursework.types.Type;
 
 import java.util.*;
@@ -48,14 +50,14 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return ir;
     }
 
-    // --- Helper Methods ---
+    // Helper Methods
 
     private void add(TamOpcode op, TamRegister r, int n, int d) {
         ir.add(new IntermediateTam.Instr(op, r, n, d));
     }
 
-    private void callPrimitive(Primitives prim, int n) {
-        add(TamOpcode.CALL, TamRegister.PB, n, prim.offset);
+    private void callPrimitive(Primitives prim) {
+        add(TamOpcode.CALL, TamRegister.PB, TamRegister.LB.value, prim.offset);
     }
 
     private void addJump(String label) {
@@ -63,10 +65,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     }
 
     /**
-     * Add instruction to jump to the label if a word popped from the stack equals n
-     *
-     * @param n     Used to check whether the jump should be taken or not based on if n equals a 1-word value that is popped from the stack
-     * @param label Label to jump to
+     * Pop a 1-word value from the stack, then jump to code with the label if and only if that popped value equals n
      */
     private void addJumpIf(int n, String label) {
         ir.add(new IntermediateTam.Jump(TamOpcode.JUMPIF, TamRegister.CB, n, label));
@@ -99,6 +98,110 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return type;
     }
 
+    /**
+     * Emits code to push the stack address of an l-value onto the stack.
+     * This method ignores implicit dereferencing for pointers.
+     * It is used for ALLOCATE and READ(char).
+     */
+    private void generateLValueStackAddress(Expression e) {
+        switch (e) {
+            case NameExpr ne -> {
+                Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
+                MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+                add(TamOpcode.LOADA, TamRegister.LB, 0, addr.offset());
+            }
+            case FieldAccessExpr(org.antlr.v4.runtime.Token startToken, Expression base, String fieldName) -> {
+                generateLValueStackAddress(base);
+
+                Type baseType = getBaseType(base);
+                if (!(baseType instanceof Type.DerivedType dt)) {
+                    throw new CompilerException(startToken, "Base of field access is not a derived type.");
+                }
+                int fieldOffset = layoutManager.getFieldOffset(dt, fieldName);
+
+                add(TamOpcode.LOADL, null, 0, fieldOffset);
+                callPrimitive(Primitives.ADD);
+            }
+            case CallOrIndexExpr cie -> {
+                // This is an array index
+                generateLValueStackAddress(cie.base());
+
+                // Calculate offset
+                Type baseType = getBaseType(cie.base());
+                if (baseType instanceof Type.ArrayType arrType && arrType.dimensions().stream().allMatch(d -> d instanceof Dimension.Known)) {
+                    generateStaticArrayOffset(cie, arrType);
+                } else {
+                    assert baseType instanceof Type.ArrayType;
+                    generatePointerArrayOffset(cie, (Type.ArrayType) baseType);
+                }
+
+                callPrimitive(Primitives.ADD);
+            }
+            default -> throw new CompilerException(e.startToken(), "This expression is not an assignable lvalue.");
+        }
+    }
+
+    /**
+     * Pushes the address of the expression onto the stack. For pointers, it pushes their actual value.
+     *
+     * @param e the expression whose address will be pushed onto the stack
+     * @throws CompilerException if the expression is not an assignable value.
+     */
+    private void visitForAddress(Expression e) {
+        if (e instanceof NameExpr ne) {
+            Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
+            MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+
+            if (sym.type() instanceof Type.PointerType) {
+                // Implicitly dereference.
+                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
+                return;
+            }
+        }
+        generateLValueStackAddress(e);
+    }
+
+    private void generateStaticArrayOffset(CallOrIndexExpr cie, Type.ArrayType arrType) {
+
+        List<Dimension> dims = arrType.dimensions();
+        List<Expression> args = cie.arguments();
+
+        if (dims.size() != args.size()) {
+            throw new CompilerException(cie.startToken(), "Incorrect number of array dimensions. Expected " + dims.size() + " but got " + args.size());
+        }
+
+        visit(args.getFirst());
+
+        for (int i = 1; i < args.size(); i++) {
+            Dimension.Known dim = (Dimension.Known) dims.get(i);
+            add(TamOpcode.LOADL, null, 0, dim.size());
+            callPrimitive(Primitives.MULT);
+            visit(args.get(i));
+            callPrimitive(Primitives.ADD);
+        }
+    }
+
+    /**
+     * Generates code to calculate an offset for a POINTER array.
+     * It leaves the final calculated offset (1 word) on top of the stack.
+     * Formula: offset = i * sizeof(baseType)
+     */
+    private void generatePointerArrayOffset(CallOrIndexExpr cie, Type.ArrayType arrType) {
+        if (cie.arguments().size() != 1) {
+            throw new CompilerException(cie.startToken(), "Pointer array indexing only supports one dimension.");
+        }
+
+        int elementSize = layoutManager.getSize(arrType.baseType());
+
+        visit(cie.arguments().getFirst());
+
+        if (elementSize > 1) {
+            add(TamOpcode.LOADL, null, 0, elementSize);
+            callPrimitive(Primitives.MULT);
+        }
+    }
+
+    // AST nodes below
 
     @Override
     public Void visitCompilationUnit(CompilationUnit cu) {
@@ -209,7 +312,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     @Override
     public Void visitCallStmt(CallStmt s) {
         for (Expression arg : s.arguments()) {
-            visitForParameter(arg);
+            visit(arg);
         }
         addCall(routineLabels.get(s.subroutineName()));
         return null;
@@ -250,25 +353,29 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         String startLabel = newLabel("do_start");
         String endLabel = newLabel("do_end");
 
+        Symbol loopVarSymbol = scopeStack.peek().getSymbol(s.loopVariable()).orElseThrow();
+        int loopVarOffset = layoutManager.getAddress(loopVarSymbol).offset();
+
+        // Set initial value
         visit(s.start());
-        NameExpr nameExpr = new NameExpr(s.startToken(), s.loopVariable());
-        visitForAddress(nameExpr);
-        add(TamOpcode.STOREI, null, 1, 0); // size=1
+        add(TamOpcode.LOADA, TamRegister.LB, 0, loopVarOffset);
+        add(TamOpcode.STOREI, null, 1, 0);
 
         placeLabel(startLabel);
 
-        visit(nameExpr);
+        // Check condition
+        add(TamOpcode.LOAD, TamRegister.LB, 1, loopVarOffset);
         visit(s.end());
-        callPrimitive(Primitives.GE, 2);
+        callPrimitive(Primitives.GE);
         addJumpIf(1, endLabel); // Jump if 1 (true)
 
         visitStatementList(s.body());
 
-        visit(nameExpr);
+        add(TamOpcode.LOAD, TamRegister.LB, 1, loopVarOffset);
         visit(s.step());
-        callPrimitive(Primitives.ADD, 2);
-        visitForAddress(nameExpr);
-        add(TamOpcode.STOREI, null, 1, 0); // Store
+        callPrimitive(Primitives.ADD);
+        add(TamOpcode.LOADA, TamRegister.LB, 0, loopVarOffset);
+        add(TamOpcode.STOREI, null, 1, 0); // Store variable back
 
         addJump(startLabel);
         placeLabel(endLabel);
@@ -285,6 +392,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         addJumpIf(0, endLabel); // Jump if 0 (false)
 
         visitStatementList(s.body());
+
         addJump(startLabel);
         placeLabel(endLabel);
         return null;
@@ -294,11 +402,35 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     public Void visitReadStmt(ReadStmt s) {
         for (Expression lval : s.lvalues()) {
             Type baseType = getBaseType(lval);
-            if (baseType != Type.Intrinsic.INTEGER) {
-                throw new CompilerException(lval.startToken(), "READ only supports INTEGER variables.");
+
+            if (baseType == Type.Intrinsic.INTEGER || baseType == Type.Intrinsic.LOGICAL) {
+                // Get address to store at (handles implicit deref)
+                visitForAddress(lval);
+                callPrimitive(Primitives.GETINT);
+            } else if (baseType == Type.Intrinsic.CHARACTER) {
+                add(TamOpcode.LOADL, null, 0, 2); // [ 2 ]
+                callPrimitive(Primitives.NEW); // [ addr ]
+
+                // store newly allocated memory address in the character seq. variable
+                visitForAddress(lval); // [ addr, str_var_addr ]
+                add(TamOpcode.STOREI, null, 1, 0); // [  ]
+
+                // save string length as 1
+                visitForAddress(lval); // [str_var_addr]
+                add(TamOpcode.LOADI, null, 1, 0); // [ alloc_adr]
+                add(TamOpcode.LOADL, null, 0, 1); // [ alloc_adr, 1 ]
+                add(TamOpcode.LOAD, TamRegister.ST, 1, -2); // [ alloc_adr, 1, alloc_adr ]
+                // store the string length at the string address
+                add(TamOpcode.STOREI, null, 1, 0); // [alloc_adr]
+
+                // Make pointer at the stack top be the address of the string + 1 to store the character
+                callPrimitive(Primitives.SUCC); // [alloc_adr + 1]
+
+                // read the single char input
+                callPrimitive(Primitives.GET);
+            } else {
+                throw new CompilerException(lval.startToken(), "READ only supports INTEGER, LOGICAL, or CHARACTER variables.");
             }
-            visitForAddress(lval);
-            callPrimitive(Primitives.GETINT, 1);
         }
         return null;
     }
@@ -306,55 +438,62 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     @Override
     public Void visitWriteStmt(WriteStmt s) {
         for (Expression e : s.expressions()) {
-            visit(e);
             Type baseType = getBaseType(e);
             if (baseType == Type.Intrinsic.INTEGER || baseType == Type.Intrinsic.LOGICAL) {
-                callPrimitive(Primitives.PUTINT, 1);
+                visit(e);
+                callPrimitive(Primitives.PUTINT);
             } else if (baseType == Type.Intrinsic.CHARACTER) {
-                generateWriteString();
+                generateWriteString(e);
+            } else if (baseType instanceof Type.ArrayType) {
+                throw new CompilerException(e.startToken(), "Cannot write expression of type Array, write a function for that!");
+            } else if (baseType instanceof Type.DerivedType) {
+                throw new CompilerException(e.startToken(), "Cannot write expression of a derived type, write a function for that!");
             } else {
-                throw new CompilerException(e.startToken(), "Cannot WRITE complex types (arrays/structs) directly.");
+                throw new CompilerException(e.startToken(), "Cannot write expression of type '" + baseType + "'");
             }
-            callPrimitive(Primitives.PUTEOL, 0);
+            callPrimitive(Primitives.PUTEOL);
         }
         return null;
     }
 
-    private void generateWriteString() {
+    private void generateWriteString(Expression e) {
+        if (getBaseType(e) != Type.Intrinsic.CHARACTER) throw new CompilerException(e.startToken(), "Cannot generate code to write a string for the expression '" + getBaseType(e) + "'");
+
         String loopStart = newLabel("write_str_start");
         String loopEnd = newLabel("write_str_end");
 
-        add(TamOpcode.LOADL, null, 0, 0);
-        callPrimitive(Primitives.ADD, 2);
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        visit(e); // Stack: [heap_addr]
 
-        add(TamOpcode.LOADL, null, 0, 0);
-        callPrimitive(Primitives.ADD, 2);
-        add(TamOpcode.LOADI, null, 1, 0);
+        // Get length
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // [heap_addr, heap_addr]
+        add(TamOpcode.LOADI, null, 1, 0); // [heap_addr, len]
 
-        add(TamOpcode.LOADL, null, 0, 1);
+        // Push counter i = 1
+        add(TamOpcode.LOADL, null, 0, 1); // [heap_addr, len, i]
 
         placeLabel(loopStart);
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
-        callPrimitive(Primitives.GT, 2);
+        // Check condition: i > len
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // [heap_addr, len, i, i]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -3); // [heap_addr, len, i, i, len]
+        callPrimitive(Primitives.GT); // [heap_addr, len, i, result]
+        addJumpIf(1, loopEnd); // [heap_addr, len, i]
 
-        addJumpIf(1, loopEnd);
+        // print char at heap_addr[i]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -3); // [heap_addr, len, i, heap_addr]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2); // [heap_addr, len, i, heap_addr, i]
+        callPrimitive(Primitives.ADD); //  [heap_addr, len, i, &char]
+        add(TamOpcode.LOADI, null, 1, 0); //  [heap_addr, len, i, char_val]
+        callPrimitive(Primitives.PUT); // [heap_addr, len, i]
 
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -3);
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
-        callPrimitive(Primitives.ADD, 2);
-        add(TamOpcode.LOADI, null, 1, 0);
-
-        callPrimitive(Primitives.PUT, 1);
-
-        add(TamOpcode.LOADL, null, 0, 1);
-        callPrimitive(Primitives.ADD, 2);
+        // Increment: i = i + 1
+        callPrimitive(Primitives.SUCC); //  [heap_addr, len, new_i]
 
         addJump(loopStart);
 
         placeLabel(loopEnd);
-        add(TamOpcode.POP, null, 0, 3);
+        // Clean up stack
+        // Stack is [heap_addr, len, i]
+        add(TamOpcode.POP, null, 0, 3); // Pops `i`, `len`, `heap_addr`.
     }
 
 
@@ -370,15 +509,16 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             add(TamOpcode.LOADL, null, 0, baseSize);
             for (Expression dimExpr : s.dimensions()) {
                 visit(dimExpr);
-                callPrimitive(Primitives.MULT, 2);
+                callPrimitive(Primitives.MULT);
             }
         }
-        callPrimitive(Primitives.NEW, 1);
+        // stack: [ size_to_allocate ]
+        callPrimitive(Primitives.NEW); // stack: [ allocated_addr ]
 
         MemoryLayoutManager.TamAddress ptrAddr = layoutManager.getAddress(ptrSymbol);
-        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset());
+        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset()); // stack: [ allocated_addr, ptr_addr ]
 
-        add(TamOpcode.STOREI, null, 1, 0);
+        add(TamOpcode.STOREI, null, 1, 0); // stack: []
         return null;
     }
 
@@ -390,16 +530,32 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
         add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
 
-        callPrimitive(Primitives.DISPOSE, 2);
+        callPrimitive(Primitives.DISPOSE);
         return null;
     }
 
-    // --- Expressions (push value to stack) ---
+    // Expressions (push value to stack)
 
     @Override
     public Void visitBinaryOpExpr(BinaryOpExpr e) {
+        // Handle POWER and CONCAT, which are not simple primitives
+
         visit(e.left());
         visit(e.right());
+
+        switch (e.operator()) {
+            case POWER -> {
+                generatePower(); // Assumes [base, exponent] on stack
+                return null;
+            }
+            case CONCAT -> {
+                generateStringConcat(); // Assumes [s1_ptr, s2_ptr] on stack
+                return null;
+            }
+            default -> {
+                // Handle all other simple primitives
+            }
+        }
 
         Type leftType = getBaseType(e.left());
         int size = layoutManager.getSize(leftType);
@@ -417,18 +573,246 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             case GREATER_EQUAL -> Primitives.GE;
             case AND -> Primitives.AND;
             case OR -> Primitives.OR;
-            case CONCAT -> throw new UnsupportedOperationException("String CONCAT not implemented");
-            case POWER -> throw new UnsupportedOperationException("POWER not implemented");
+            // Handled above
+            case CONCAT, POWER -> throw new IllegalStateException("Should be handled above");
         };
 
         if (prim == Primitives.EQ || prim == Primitives.NE) {
             add(TamOpcode.LOADL, null, 0, size);
-            callPrimitive(prim, 3);
+            callPrimitive(prim);
         } else {
-            callPrimitive(prim, 2);
+            callPrimitive(prim);
         }
         return null;
     }
+
+    /**
+     * Helper for POWER (**).
+     * <p>
+     * Assumes [base, exponent] is on the stack.
+     * Leaves [result] on the stack.
+     */
+    private void generatePower() {
+        String loopStart = newLabel("pow_loop_start");
+        String loopEnd = newLabel("pow_loop_end");
+
+        // Initial Stack: [base, exponent]
+
+        // Push accumulator
+        add(TamOpcode.LOADL, null, 0, 1);
+        // Stack: [base, exponent, 1<acc>]
+
+        placeLabel(loopStart);
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [base, exponent, acc, exponent]
+        add(TamOpcode.LOADL, null, 0, 0);
+        // Stack: [base, exponent, acc, exponent, 0]
+        callPrimitive(Primitives.GT);
+        // Stack: [base, exponent, acc, (exp > 0)]
+        addJumpIf(0, loopEnd); // pops
+        // Stack: [base, exponent, acc]
+
+        // Loop Body: acc = acc * base
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [base, exponent, acc, acc]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -4);
+        // Stack: [base, exponent, acc, acc, base]
+        callPrimitive(Primitives.MULT);
+        // Stack: [base, exponent, acc, new_acc]
+        add(TamOpcode.STORE, TamRegister.ST, 1, -2);
+        // Stack: [base, exponent, new_acc]
+
+        // Loop Body: exponent = exponent - 1
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [base, exponent, new_acc, exponent]
+
+        callPrimitive(Primitives.PRED);
+        // Stack: [base, exponent, new_acc, new_exp]
+        add(TamOpcode.STORE, TamRegister.ST, 1, -3);
+        // Stack: [base, new_exp, new_acc]
+
+        addJump(loopStart);
+
+        placeLabel(loopEnd);
+        // Stack: [base, exponent, acc] (This is the state when loop test fails)
+
+        // clean up stack to leave only the result
+        add(TamOpcode.POP, null, 1, 2);
+        // Final Stack: [acc<result>]
+    }
+
+    /**
+     * Helper for CONCAT (//).
+     * Refactored to use a string copy helper method.
+     * Assumes [s1_ptr, s2_ptr] is on the stack.
+     * Leaves [new_ptr] on the stack.
+     */
+    private void generateStringConcat() {
+        // Initial Stack: [s1_ptr, s2_ptr]
+
+        // get len1
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [s1_ptr, s2_ptr, s1_ptr]
+        add(TamOpcode.LOADI, null, 1, 0);
+        // Stack: [s1_ptr, s2_ptr, len1]
+
+        // get len2
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [s1_ptr, s2_ptr, len1, s2_ptr]
+        add(TamOpcode.LOADI, null, 1, 0);
+        // Stack: [s1_ptr, s2_ptr, len1, len2]
+
+        // new_len = len1 + len2
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, len2]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -3);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, len2, len1]
+        callPrimitive(Primitives.ADD);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len]
+
+        // total_size = new_len + 1 (for length word)
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_len]
+
+        callPrimitive(Primitives.SUCC);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, total_size]
+
+        // new_ptr = allocate(total_size)
+        callPrimitive(Primitives.NEW);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr]
+
+        // new_ptr[0] = new_len
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_len]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_len, new_ptr]
+        add(TamOpcode.STOREI, null, 1, 0); // stores new_len at the new_ptr
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr]
+
+        // prep for Loop 1 (copy s1)
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -7); // DUP s1_ptr
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr<src>]
+        add(TamOpcode.LOADL, null, 0, 1); // dest_offset = 1
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1<dest_off>]
+        add(TamOpcode.LOADL, null, 0, 1); // src_offset = 1
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1, 1<src_off>]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -9); // DUP len1
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1, 1, len1<count>]
+
+        generateStringCopyLoop("concat1");
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr]
+
+        // prep for Loop 2 (copy s2)
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -6);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>, s2_ptr<src>]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -6);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>, s2_ptr<src>, len1]
+
+        callPrimitive(Primitives.SUCC); // dest_offset = len1 + 1
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>, s2_ptr<src>, <dest_off>]
+        add(TamOpcode.LOADL, null, 0, 1);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>, s2_ptr<src>, <dest_off>, 1<src_off>]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -7);
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>, s2_ptr<src>, <dest_off>, 1<src_off>, len2<count>]
+
+        // call helper. Stack args consumed.
+        generateStringCopyLoop("concat2");
+        // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr]
+
+        // clean up stack to leave only [new_ptr]
+        add(TamOpcode.POP, null, 1, 5);
+        // Final Stack: [new_ptr]
+    }
+
+    /**
+     * Helper method to copy a string.
+     * Assumes stack is: [dest_ptr, src_ptr, dest_offset, src_offset, count]
+     * Consumes these 5 arguments.
+     * Copies "count" chars from "src_ptr[src_offset + i]" to "dest_ptr[dest_offset + i]".
+     *
+     * @param hint A string hint for label generation.
+     */
+    private void generateStringCopyLoop(String hint) {
+        String loopStart = newLabel(hint + "_start");
+        String loopEnd = newLabel(hint + "_end");
+
+        // Stack on entry: [dest, src, d_off, s_off, count]
+
+        add(TamOpcode.LOADL, null, 0, 0);
+        // Stack: [dest, src, d_off, s_off, count, i=0]
+
+        placeLabel(loopStart);
+        // Stack: [dest, src, d_off, s_off, count, i]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // Stack: [dest, src, d_off, s_off, count, i, i]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -3);
+        // Stack: [dest, src, d_off, s_off, count, i, i, count]
+
+        callPrimitive(Primitives.GE);
+        // Stack: [dest, src, d_off, s_off, count, i, (i>=count)]
+
+        addJumpIf(1, loopEnd);
+        // Stack: [dest, src, d_off, s_off, count, i]
+
+        // body: char = src[s_off + i]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -5);
+        // Stack: [dest, src, d_off, s_off, count, i, src]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -4);
+        // Stack: [dest, src, d_off, s_off, count, i, src, s_off]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -3);
+        // Stack: [dest, src, d_off, s_off, count, i, src, s_off, i]
+
+        callPrimitive(Primitives.ADD);
+        // Stack: [dest, src, d_off, s_off, count, i, src, (s_off+i)]
+
+        callPrimitive(Primitives.ADD);
+        // Stack: [dest, src, d_off, s_off, count, i, (src + s_off + i)]
+
+        add(TamOpcode.LOADI, null, 1, 0); // get the char from source string
+        // Stack: [dest, src, d_off, s_off, count, i, char]
+
+        // part: dest[d_off + i] = char
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -7);
+        // Stack: [dest, src, d_off, s_off, count, i, char, dest]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -6);
+        // Stack: [dest, src, d_off, s_off, count, i, char, dest, d_off]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -4);
+        // Stack: [dest, src, d_off, s_off, count, i, char, dest, d_off, i]
+
+        callPrimitive(Primitives.ADD);
+        // Stack: [dest, src, d_off, s_off, count, i, char, dest, (d_off+i)]
+
+        callPrimitive(Primitives.ADD);
+        // Stack: [dest, src, d_off, s_off, count, i, char, (dest + d_off + i)]
+
+        add(TamOpcode.STOREI, null, 1, 0); // store the char at that address
+        // Stack: [dest, src, d_off, s_off, count, i]
+
+        // increment: i = i + 1
+        callPrimitive(Primitives.SUCC);
+        // Stack: [dest, src, d_off, s_off, count, i + 1]
+
+        addJump(loopStart);
+        // Loop back with Stack: [dest, src, d_off, s_off, count, i] where i is now incremented
+
+        placeLabel(loopEnd);
+        // Stack when we reach here: [dest, src, d_off, s_off, count, i]
+
+        // 6. Clean up stack
+        add(TamOpcode.POP, null, 0, 6); // Pop 0-word result, pop 6 words, push nothing back
+        // Final Stack: []
+    }
+
 
     @Override
     public Void visitFieldAccessExpr(FieldAccessExpr e) {
@@ -438,23 +822,49 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
+    /// /////////////////////////////////////////////MUST CHECK THE BELOW STUFF AS IT IS UNCHECKED
     @Override
     public Void visitCallOrIndexExpr(CallOrIndexExpr e) {
         Type baseAstType = typeMap.get(e.base());
 
         if (baseAstType instanceof Type.FunctionType) {
             for (Expression arg : e.arguments()) {
-                visitForParameter(arg);
+                if (arg instanceof NameExpr ne) {
+                    // handle the name expression case manually because in this case we don't want to dereference the pointer.
+                    Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
+                    MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+
+                    add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
+                } else {
+                    visit(arg);
+                }
             }
             String funcName = ((NameExpr) e.base()).name();
             addCall(routineLabels.get(funcName));
         } else {
-            visitForAddress(e);
+            // --- FIX for Multi-dimensional Arrays ---
+            visitForAddress(e); // This now calculates the full address
             int size = layoutManager.getSize(typeMap.get(e));
             add(TamOpcode.LOADI, null, size, 0);
         }
         return null;
     }
+
+//    @Override
+//    public Void visitNameExpr(NameExpr e) {
+//        Symbol sym = scopeStack.peek().getSymbol(e.name()).orElseThrow();
+//        MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+//        Type type = sym.type();
+//
+//        if (type instanceof Type.PointerType) {
+//            // DEFAULT RULE: Implicitly dereference.
+//            add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
+//            add(TamOpcode.LOADI, null, 1, 0); // Pushes value at heap_addr
+//        } else {
+//            add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
+//        } // HERE MUST IMPLEMENT THE LOGIC FOR STRINGS TOO
+//        return null;
+//    }
 
     @Override
     public Void visitNameExpr(NameExpr e) {
@@ -466,6 +876,9 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             // DEFAULT RULE: Implicitly dereference.
             add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
             add(TamOpcode.LOADI, null, 1, 0); // Pushes value at heap_addr
+        } else if (type == Type.Intrinsic.CHARACTER) {
+            // Strings are stored as heap pointers, just load the address
+            add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr (string pointer)
         } else {
             add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
         }
@@ -491,11 +904,11 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         int totalSizeInWords = 1 + len;
 
         add(TamOpcode.LOADL, null, 0, totalSizeInWords);
-        callPrimitive(Primitives.NEW, 1);
+        callPrimitive(Primitives.NEW);
 
         add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
         add(TamOpcode.LOADL, null, 0, 0);
-        callPrimitive(Primitives.ADD, 2);
+        callPrimitive(Primitives.ADD);
         add(TamOpcode.LOADL, null, 0, len);
         add(TamOpcode.STOREI, null, 1, 0);
 
@@ -505,72 +918,11 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
             add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
             add(TamOpcode.LOADL, null, 0, charIndex);
-            callPrimitive(Primitives.ADD, 2);
+            callPrimitive(Primitives.ADD);
             add(TamOpcode.LOADL, null, 0, charVal);
             add(TamOpcode.STOREI, null, 1, 0);
         }
 
         return null;
-    }
-
-    // --- L-Value (push address to stack) ---
-
-    private void visitForAddress(Expression e) {
-        switch (e) {
-            case NameExpr ne -> {
-                Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
-                MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
-
-                if (sym.type() instanceof Type.PointerType) {
-                    // DEFAULT RULE: Implicitly dereference.
-                    add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
-                } else {
-                    add(TamOpcode.LOADA, TamRegister.LB, 0, addr.offset());
-                }
-            }
-            case FieldAccessExpr(org.antlr.v4.runtime.Token startToken, Expression base, String fieldName) -> {
-                visitForAddress(base);
-
-                Type baseType = getBaseType(base);
-                if (!(baseType instanceof Type.DerivedType dt)) {
-                    throw new CompilerException(startToken, "Base of field access is not a derived type.");
-                }
-                int fieldOffset = layoutManager.getFieldOffset(dt, fieldName);
-
-                add(TamOpcode.LOADL, null, 0, fieldOffset);
-                callPrimitive(Primitives.ADD, 2);
-            }
-            case CallOrIndexExpr cie -> {
-                Symbol baseSym = scopeStack.peek().getSymbol(((NameExpr) cie.base()).name()).orElseThrow();
-                MemoryLayoutManager.TamAddress baseAddr = layoutManager.getAddress(baseSym);
-
-                if (getBaseType(cie.base()) instanceof Type.ArrayType) {
-                    add(TamOpcode.LOADA, TamRegister.LB, 0, baseAddr.offset());
-                } else {
-                    add(TamOpcode.LOAD, TamRegister.LB, 1, baseAddr.offset());
-                }
-
-                visit(cie.arguments().getFirst());
-
-                callPrimitive(Primitives.ADD, 2);
-            }
-            default -> throw new CompilerException(e.startToken(), "This expression is not an assignable lvalue.");
-        }
-    }
-
-    private void visitForParameter(Expression e) {
-        if (e instanceof NameExpr ne) {
-            Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
-            MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
-
-            if (sym.type() instanceof Type.PointerType) {
-                // EXCEPTION 1: Pass-as-parameter.
-                add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
-            } else {
-                visit(e);
-            }
-        } else {
-            visit(e);
-        }
     }
 }

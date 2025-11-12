@@ -49,6 +49,8 @@ public class SymbolTableBuilder extends AstBaseVisitor<Void> {
         return null;
     }
 
+
+
     @Override
     public Void visitDerivedTypeDecl(DerivedTypeDecl dtd) {
         currentScope = globalScope;
