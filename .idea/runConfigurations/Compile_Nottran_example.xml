@@ -4,7 +4,7 @@
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="uk.ac.nott.cs.comp3012.coursework.Compiler" />
     <module name="coursework.main" />
-    <option name="PROGRAM_PARAMETERS" value="src\test\examples\test1.n25 src\test\examples-output\output.tam" />
+    <option name="PROGRAM_PARAMETERS" value="src\test\examples\matrix-multiplication.n25 src\test\examples-output\output.tam" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
