@@ -1,0 +1,297 @@
+! Helper definition for derived type
+type person
+    integer :: id
+    character :: name
+end type person
+
+! Helper definition for subroutine test
+subroutine test_sub_helper(a, b)
+    integer :: a
+    character :: b
+    write "  Subroutine OK (42, test):", a, b
+end subroutine test_sub_helper
+
+! 1. Tests relational operators
+function test_rel_ops() result(res)
+    integer :: a, b, res
+    logical :: l1, l2
+    a = 5
+    b = 2
+    l1 = .true.
+    l2 = .false.
+    write "  5 > 2 (1):", a > b
+    write "  5 < 2 (0):", a < b
+    write "  .true. == .false. (0):", l1 == l2
+    write "  5 .le. 2 (0):", a .le. b
+    res = 1
+end function test_rel_ops
+
+! Tests read/write integers and logicals
+function test_rw_int_log() result(res)
+    integer :: i, res
+    logical :: l
+    write "  Enter integer 42:"
+    read i
+    write "  Integer read (42):", i
+    write "  Enter logical .true.:"
+    read l
+    write "  Logical read (1):", l
+    res = 1
+end function test_rw_int_log
+
+! Tests if statement
+function test_if_simple1() result(res)
+    integer :: res
+    res = 0
+    if (5 > 2) res = 1
+    write "  Simple If (1):", res
+end function test_if_simple1
+
+! Tests if-then-else statement
+function test_if_then_else1() result(res)
+    integer :: res
+    if (.false.) then
+        res = 0
+    else
+        res = 1
+    end if
+    write "  If-Then-Else (1):", res
+end function test_if_then_else1
+
+! Tests integer variables and assignment
+function test_int_assign() result(res)
+    integer :: a, b, res
+    a = 10
+    b = a
+    write "  Integer assign (10):", b
+    res = 1
+end function test_int_assign
+
+! Tests logical variables and assignment
+function test_log_assign() result(res)
+    integer :: res
+    logical :: l1, l2, l3
+    l1 = .true.
+    l2 = .false.
+    l3 = l1 .or. l2
+    write "  Logical assign (1):", l3
+    res = 1
+end function test_log_assign
+
+! Tests arithmetic operators
+function test_arithmetic() result(res)
+    integer :: a, b, res
+    a = 20
+    b = 3
+    write "  20 + 3 (23):", a + b
+    write "  20 * 3 (60):", a * b
+    write "  3 ** 3 (27):", b ** 3
+    res = 1
+end function test_arithmetic
+
+! Tests if statement (second instance)
+function test_if_simple2() result(res)
+    integer :: res
+    res = 0
+    if (.true.) write "  Simple If 2: OK"
+    res = 1
+end function test_if_simple2
+
+! Tests if-then-else statement (second instance)
+function test_if_then_else2() result(res)
+    integer :: res
+    if (10 < 5) then
+        write "  If-Then-Else 2: FAILED"
+        res = 0
+    else
+        write "  If-Then-Else 2: OK"
+        res = 1
+    end if
+end function test_if_then_else2
+
+! Tests do-while statement
+function test_do_while() result(res)
+    integer :: k, res
+    k = 0
+    do while (k < 3)
+        write "  Do-while (0,1,2):", k
+        k = k + 1
+    end do
+    res = 1
+end function test_do_while
+
+! Tests character variables and assignment
+function test_char_assign() result(res)
+    integer :: res
+    character :: c
+    c = "A"
+    write "  Character assign (A):", c
+    res = 1
+end function test_char_assign
+
+! Tests read/write characters
+function test_rw_char() result(res)
+    integer :: res
+    character :: c
+    write "  Enter character Z:"
+    read c
+    write "  Character read (Z):", c
+    res = 1
+end function test_rw_char
+
+! Tests array variables, assignment, and indexing
+function test_array_assign_index() result(res)
+    integer :: res
+    integer(3) :: arr
+    arr(0) = 100
+    arr(1) = 200
+    arr(2) = arr(0) + arr(1)
+    write "  Array index 0 (100):", arr(0)
+    write "  Array index 2 (300):", arr(2)
+    res = 1
+end function test_array_assign_index
+
+! Tests do statement
+function test_do_loop() result(res)
+    integer :: i, res
+    integer(3) :: arr
+    arr(0) = 1
+    arr(1) = 2
+    arr(2) = 3
+    write "  Do loop (1,2,3):"
+    do i = 0, 3
+        write arr(i)
+    end do
+    res = 1
+end function test_do_loop
+
+! Tests concatenation operator
+function test_concat() result(res)
+    integer :: res
+    character :: s1, s2, s3
+    s1 = "Hello"
+    s2 = " World"
+    s3 = s1 // s2
+    write "  Concatenation (Hello World):", s3
+    res = 1
+end function test_concat
+
+! Tests subroutines
+function test_subroutines() result(res)
+    integer :: res
+    call test_sub_helper(42, "test")
+    res = 1
+end function test_subroutines
+
+! Tests functions
+function test_functions() result(res)
+    integer :: x, res
+    x = test_func_helper(9)
+    write "  Function call (81):", x
+    res = 1
+end function test_functions
+
+function test_func_helper(a) result(res)
+    integer :: a, res
+    res = a * a
+end function test_func_helper
+
+! Tests pointer variables and allocation/deallocation
+function test_pointers() result(res)
+    integer :: x, res
+    integer(*) pointer :: p_arr
+    allocate p_arr, 5 ! Allocate 5 integers
+    p_arr(0) = 100
+    p_arr(4) = 500
+    x = p_arr(0) + p_arr(4)
+    write "  Pointer array (600):", x
+    deallocate p_arr
+    res = 1
+end function test_pointers
+
+! Tests defined types and defined type variables
+function test_derived_types() result(res)
+    integer :: res
+    type(person) :: p1
+    type(person) pointer :: p_ptr
+
+    p1 % id = 7
+    p1 % name = "static_person"
+    write "  Derived type static (7):", p1 % id
+    write "  Derived type static (static_person):", p1 % name
+
+    allocate p_ptr
+    p_ptr % id = 88
+    p_ptr % name = "pointer_person"
+    write "  Derived type pointer (88):", p_ptr % id
+    write "  Derived type pointer (pointer_person):", p_ptr % name
+    deallocate p_ptr
+    res = 1
+end function test_derived_types
+
+
+! Main program to run all test functions
+program comprehensive_test
+    integer :: res
+
+    write "--- Running Nottran Test Suite ---"
+
+    res = test_rel_ops()
+    write "Test Relational Ops (1):", res
+
+    res = test_rw_int_log()
+    write "Test R/W Int/Log (1):", res
+
+    res = test_if_simple1()
+    write "Test If Simple 1 (1):", res
+
+    res = test_if_then_else1()
+    write "Test If-Then-Else 1 (1):", res
+
+    res = test_int_assign()
+    write "Test Int Assign (1):", res
+
+    res = test_log_assign()
+    write "Test Log Assign (1):", res
+
+    res = test_arithmetic()
+    write "Test Arithmetic (1):", res
+
+    res = test_if_simple2()
+    write "Test If Simple 2 (1):", res
+
+    res = test_if_then_else2()
+    write "Test If-Then-Else 2 (1):", res
+
+    res = test_do_while()
+    write "Test Do-While (1):", res
+
+    res = test_char_assign()
+    write "Test Char Assign (1):", res
+
+    res = test_rw_char()
+    write "Test R/W Char (1):", res
+
+    res = test_array_assign_index()
+    write "Test Array Assign/Index (1):", res
+
+    res = test_do_loop()
+    write "Test Do Loop (1):", res
+
+    res = test_concat()
+    write "Test Concat (1):", res
+
+    res = test_subroutines()
+    write "Test Subroutines (1):", res
+
+    res = test_functions()
+    write "Test Functions (1):", res
+
+    res = test_pointers()
+    write "Test Pointers (1):", res
+
+    res = test_derived_types()
+    write "Test Derived Types (1):", res
+
+    write "===== Test Suite Complete ====="
+end program comprehensive_test

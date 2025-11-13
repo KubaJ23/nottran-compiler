@@ -44,6 +44,9 @@ public class Frontend implements Compiler.Frontend {
         this.scopeMap = symbolTableBuilder.getScopeMap();
         this.typeMap = typeChecker.getTypeMap();
 
+        AstPrinter printer = new AstPrinter();
+        printer.print(ast);
+
         return ast;
     }
 

@@ -111,7 +111,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     private void addCall(String label) {
         // Static link for register LB is used (8). Functions are not nested so static link is always LB.
-        ir.add(new IntermediateTam.Jump(TamOpcode.CALL, TamRegister.LB, 8, label));
+        ir.add(new IntermediateTam.Jump(TamOpcode.CALL, TamRegister.CB, 8, label));
     }
 
     private String newLabel(String hint) {
@@ -730,13 +730,13 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         // prep for Loop 1 (copy s1)
         add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
         // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr<dest>]
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -7); // DUP s1_ptr
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -7);
         // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr<src>]
-        add(TamOpcode.LOADL, null, 0, 1); // dest_offset = 1
+        add(TamOpcode.LOADL, null, 0, 1);
         // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1<dest_off>]
-        add(TamOpcode.LOADL, null, 0, 1); // src_offset = 1
+        add(TamOpcode.LOADL, null, 0, 1);
         // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1, 1<src_off>]
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -9); // DUP len1
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -8); // DUP len1
         // Stack: [s1_ptr, s2_ptr, len1, len2, new_len, new_ptr, new_ptr, s1_ptr, 1, 1, len1<count>]
 
         generateStringCopyLoop("concat1");

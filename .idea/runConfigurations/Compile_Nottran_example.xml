@@ -1,10 +1,10 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Compiler on simple file" type="Application" factoryName="Application">
+  <configuration default="false" name="Compile Nottran example" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-25" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="uk.ac.nott.cs.comp3012.coursework.Compiler" />
     <module name="coursework.main" />
-    <option name="PROGRAM_PARAMETERS" value="src\test\examples\testSimple.n25 src\test\examples-output\test1.tam" />
+    <option name="PROGRAM_PARAMETERS" value="src\test\examples\test1.n25 src\test\examples-output\output.tam" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
