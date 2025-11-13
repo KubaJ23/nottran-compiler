@@ -102,6 +102,8 @@ public class TamGenerator extends AstBaseVisitor<Void> {
      * Emits code to push the stack address of an l-value onto the stack.
      * This method ignores implicit dereferencing for pointers.
      * It is used for ALLOCATE and READ(char).
+     * <p>
+     * Throws an errors if the expression is not an assignable value (address is not at a constant offset)
      */
     private void generateLValueStackAddress(Expression e) {
         switch (e) {
@@ -143,6 +145,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     /**
      * Pushes the address of the expression onto the stack. For pointers, it pushes their actual value.
+     * Throws an errors if the expression is not an assignable value (address is not at a constant offset)
      *
      * @param e the expression whose address will be pushed onto the stack
      * @throws CompilerException if the expression is not an assignable value.
@@ -217,7 +220,9 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             }
         }
 
-        addCall("main");
+        add(TamOpcode.PUSH, null, 0, 3); // Add padding for first scope to account for missing static link, dynamic link, and return address.
+
+        visit(cu.program());
 
         add(TamOpcode.HALT, null, 0, 0);
 
@@ -226,11 +231,6 @@ public class TamGenerator extends AstBaseVisitor<Void> {
                 visit(unit);
             }
         }
-
-        placeLabel("main");
-        visit(cu.program());
-
-        add(TamOpcode.RETURN, null, 0, 0);
 
         scopeStack.pop();
         return null;
@@ -822,7 +822,6 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
-    /// /////////////////////////////////////////////MUST CHECK THE BELOW STUFF AS IT IS UNCHECKED
     @Override
     public Void visitCallOrIndexExpr(CallOrIndexExpr e) {
         Type baseAstType = typeMap.get(e.base());
@@ -842,7 +841,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             String funcName = ((NameExpr) e.base()).name();
             addCall(routineLabels.get(funcName));
         } else {
-            // --- FIX for Multi-dimensional Arrays ---
+            // for Multi-dimensional Arrays
             visitForAddress(e); // This now calculates the full address
             int size = layoutManager.getSize(typeMap.get(e));
             add(TamOpcode.LOADI, null, size, 0);
@@ -850,32 +849,16 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
-//    @Override
-//    public Void visitNameExpr(NameExpr e) {
-//        Symbol sym = scopeStack.peek().getSymbol(e.name()).orElseThrow();
-//        MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
-//        Type type = sym.type();
-//
-//        if (type instanceof Type.PointerType) {
-//            // DEFAULT RULE: Implicitly dereference.
-//            add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
-//            add(TamOpcode.LOADI, null, 1, 0); // Pushes value at heap_addr
-//        } else {
-//            add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
-//        } // HERE MUST IMPLEMENT THE LOGIC FOR STRINGS TOO
-//        return null;
-//    }
-
     @Override
     public Void visitNameExpr(NameExpr e) {
         Symbol sym = scopeStack.peek().getSymbol(e.name()).orElseThrow();
         MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
         Type type = sym.type();
 
-        if (type instanceof Type.PointerType) {
-            // DEFAULT RULE: Implicitly dereference.
+        if (type instanceof Type.PointerType(Type baseType)) {
+            // implicitly dereference.
             add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr
-            add(TamOpcode.LOADI, null, 1, 0); // Pushes value at heap_addr
+            add(TamOpcode.LOADI, null, layoutManager.getSize(baseType), 0); // Pushes value at heap_addr of the specified size
         } else if (type == Type.Intrinsic.CHARACTER) {
             // Strings are stored as heap pointers, just load the address
             add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset()); // Pushes heap_addr (string pointer)
@@ -904,25 +887,42 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         int totalSizeInWords = 1 + len;
 
         add(TamOpcode.LOADL, null, 0, totalSizeInWords);
+        // Stack: [totalSize]
+
         callPrimitive(Primitives.NEW);
+        // Stack: [heap_addr]
 
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
-        add(TamOpcode.LOADL, null, 0, 0);
-        callPrimitive(Primitives.ADD);
         add(TamOpcode.LOADL, null, 0, len);
-        add(TamOpcode.STOREI, null, 1, 0);
+        // Stack: [heap_addr, len]
 
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // Stack: [heap_addr, len, heap_addr]
+
+        add(TamOpcode.STOREI, null, 1, 0);
+        // Stack: [heap_addr]
+
+        // Store each character
         for (int i = 0; i < len; i++) {
             int charVal = s.charAt(i);
             int charIndex = i + 1;
 
-            add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
-            add(TamOpcode.LOADL, null, 0, charIndex);
-            callPrimitive(Primitives.ADD);
             add(TamOpcode.LOADL, null, 0, charVal);
-            add(TamOpcode.STOREI, null, 1, 0);
+            // Stack: [heap_addr, charVal]
+
+            add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+            // Stack: [heap_addr, charVal, heap_addr]
+
+            add(TamOpcode.LOADL, null, 0, charIndex);
+            // Stack: [heap_addr, charVal, heap_addr, charIndex]
+
+            callPrimitive(Primitives.ADD);
+            // Stack: [heap_addr, charVal, (heap_addr+charIndex)]
+
+            add(TamOpcode.STOREI, null, 1, 0); // Stores the charVal at the right address
+            // Stack: [heap_addr]
         }
 
+        // Final Stack: [heap_addr]
         return null;
     }
 }
