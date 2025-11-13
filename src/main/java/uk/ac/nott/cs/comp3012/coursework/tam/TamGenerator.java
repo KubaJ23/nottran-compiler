@@ -302,8 +302,17 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     @Override
     public Void visitCallStmt(CallStmt s) {
+        // Similar to function call:
         for (Expression arg : s.arguments()) {
-            visit(arg);
+            if (arg instanceof NameExpr ne) {
+                // handle the name expression case manually because in this case we don't want to dereference the pointer.
+                Symbol sym = scopeStack.peek().getSymbol(ne.name()).orElseThrow();
+                MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+
+                add(TamOpcode.LOAD, TamRegister.LB, addr.size(), addr.offset());
+            } else {
+                visit(arg);
+            }
         }
         addCall(routineLabels.get(s.subroutineName()));
         return null;
@@ -552,7 +561,7 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         return null;
     }
 
-    // Expressions (push value to stack)
+// Expressions (push value to stack)
 
     @Override
     public Void visitBinaryOpExpr(BinaryOpExpr e) {
