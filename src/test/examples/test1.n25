@@ -29,21 +29,19 @@ subroutine write_matrix(m)
     end do
 end subroutine write_matrix
 
-function dot(a, b) result (c)
+function dot(a, b) result(c)
     integer(3,3) :: a, b, c
-    integer :: i, j, i1, j1
+    integer :: i, j, k
     do i = 0, 3
         do j = 0, 3
-            i1 = 0
-            j1 = 0
-            do while (i1 < 3 .and. j1 < 3)
-                c(i,j) = a(i,j1) * b(i1,j)
-                i1 = i1 + 1
-                j1 = j1 + 1
+            c(i,j) = 0
+            do k = 0, 3
+                c(i,j) = c(i,j) + a(i,k) * b(k,j)
             end do
         end do
     end do
 end function dot
+
 
 program dot_product
     integer(3,3) :: a, b, c
