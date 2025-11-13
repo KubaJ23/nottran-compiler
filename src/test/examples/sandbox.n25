@@ -1,8 +1,11 @@
 program test
-    integer :: res
-    character :: s1, s2, s3
-    s1 = "a"
-    s2 = "b"
-    s3 = s1 // s2
-    write s3
+    integer :: b, a
+    b = 3
+    a = 3
+    write b ** a
 end program test
+
+type person
+    integer :: id
+    character :: name
+end type person

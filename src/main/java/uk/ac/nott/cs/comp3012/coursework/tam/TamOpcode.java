@@ -31,7 +31,7 @@ public enum TamOpcode {
 
     /**
      * STORE(n) d[r]
-     * Pop an n-word object from stack and store at data address (d + register r).
+     * Pop an n-word object from stack and store at data address (d + register r). ST is changed immediately after the first pop.
      */
     STORE(4),
 
