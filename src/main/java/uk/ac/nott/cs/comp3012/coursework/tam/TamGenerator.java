@@ -30,14 +30,52 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     private int labelCounter = 0;
 
     /**
-     * TAM Primitive routine offsets
+     * TAM Primitive routine offsets as defined in the TAM specification.
+     * each primitive performs an elementary operation on the stack.
+     * <p>
+     * a denotes a data address
+     * c denotes a character
+     * i denotes an integer
+     * n denotes a non-negative integer
+     * t denotes a truth value (0 for false or 1 for true)
+     * v denotes a value of any type
+     * w denotes any 1-word value
      */
     private enum Primitives {
-        ID(1), NOT(2), AND(3), OR(4), SUCC(5), PRED(6), NEG(7), ADD(8), SUB(9), MULT(10), DIV(11), MOD(12), LT(13), LE(14), GE(15), GT(16), EQ(17), NE(18), EOL(19), EOF(20), GET(21), PUT(22), GETEOL(23), PUTEOL(24), GETINT(25), PUTINT(26), NEW(27), DISPOSE(28);
+        ID(1),      // Identity: w -> w' (Set w' = w)
+        NOT(2),     // Logical NOT: t -> t' (Set t' = ¬t)
+        AND(3),     // Logical AND: t1, t2 -> t' (Set t' = t1 ∧ t2)
+        OR(4),      // Logical OR: t1, t2 -> t' (Set t' = t1 ∨ t2)
+        SUCC(5),    // Successor: i -> i' (Set i' = i + 1)
+        PRED(6),    // Predecessor: i -> i' (Set i' = i - 1)
+        NEG(7),     // Negation: i -> i' (Set i' = -i)
+        ADD(8),     // Addition: i1, i2 -> i' (Set i' = i1 + i2)
+        SUB(9),     // Subtraction: i1, i2 -> i' (Set i' = i1 - i2)
+        MULT(10),   // Multiplication: i1, i2 -> i' (Set i' = i1 × i2)
+        DIV(11),    // Division: i1, i2 -> i' (Set i' = i1 / i2, truncated)
+        MOD(12),    // Modulo: i1, i2 -> i' (Set i' = i1 mod i2)
+        LT(13),     // Less than: i1, i2 -> t' (Set t' = true iff i1 < i2)
+        LE(14),     // Less than or equal: i1, i2 -> t' (Set t' = true iff i1 ≤ i2)
+        GE(15),     // Greater than or equal: i1, i2 -> t' (Set t' = true iff i1 ≥ i2)
+        GT(16),     // Greater than: i1, i2 -> t' (Set t' = true iff i1 > i2)
+        EQ(17),     // Equal: v1, v2, n -> t' (Set t' = true iff v1 = v2, where v1 and v2 are n-word values)
+        NE(18),     // Not equal: v1, v2, n -> t' (Set t' = true iff v1 ≠ v2, where v1 and v2 are n-word values)
+        EOL(19),    // End of line: -> t' (Set t' = true iff next character is end-of-line)
+        EOF(20),    // End of file: -> t' (Set t' = true iff no more characters to read)
+        GET(21),    // Get character: a -> (Read character and store at address a)
+        PUT(22),    // Put character: c -> (Write character c)
+        GETEOL(23), // Get end of line: -> (Read characters up to and including next end-of-line)
+        PUTEOL(24), // Put end of line: -> (Write end-of-line)
+        GETINT(25), // Get integer: a -> (Read integer literal and store at address a)
+        PUTINT(26), // Put integer: i -> (Write integer literal with value i)
+        NEW(27),    // Allocate heap: n -> a' (Set a' = address of newly allocated n-word object in heap)
+        DISPOSE(28);// Deallocate heap: n, a -> (Deallocate n-word object at address a in heap)
 
         final int offset;
 
-        Primitives(int offset) {this.offset = offset;}
+        Primitives(int offset) {
+            this.offset = offset;
+        }
     }
 
     public TamGenerator(Map<Ast, SymbolTable> scopeMap, Map<Ast, Type> typeMap, MemoryLayoutManager layoutManager) {

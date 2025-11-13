@@ -1,17 +1,14 @@
 program lexical_test
-    integer :: a, b
-    a = 1
-    b = 2
+    integer:: a, b, res
 
-    write max(a, b)
+    a = 2
+    b = 3
+    res = a + b
+    write test1(a ,b)
 end program lexical_test
 
-function max(a, b) result (max_val)
-  integer :: a, b, max_val
+function test1(a, b)
+    integer:: a, b, test1
 
-  if (a > b) then
-    max_val = a
-  else
-    max_val = b
-  end if
-end function max
+    test1 = a + b
+end function test1
