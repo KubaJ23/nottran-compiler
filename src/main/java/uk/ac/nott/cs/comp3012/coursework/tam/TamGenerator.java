@@ -504,10 +504,26 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             }
         }
         // stack: [ size_to_allocate ]
-        callPrimitive(Primitives.NEW); // stack: [ allocated_addr ]
+        callPrimitive(Primitives.SUCC);
+        // stack: [ tot_size ]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // stack: [ tot_size, tot_size ]
+
+        callPrimitive(Primitives.NEW);
+        // stack: [ tot_size, allocated_addr ]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // stack: [ tot_size, allocated_addr, tot_size ]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // stack: [ tot_size, allocated_addr, tot_size, allocated_addr ]
+        add(TamOpcode.POP, null, 3, 1);
+        // stack: [ allocated_addr, tot_size, allocated_addr ]
+        add(TamOpcode.STOREI, null, 1, 0); // store total allocated size at allocated_addr
+        // stack: [ allocated_addr ]
+        callPrimitive(Primitives.SUCC);
+        // stack: [ allocated_addr + 1 ]
 
         MemoryLayoutManager.TamAddress ptrAddr = layoutManager.getAddress(ptrSymbol);
-        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset()); // stack: [ allocated_addr, ptr_addr ]
+        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset()); // stack: [ allocated_addr + 1, ptr_addr ]
 
         add(TamOpcode.STOREI, null, 1, 0); // stack: []
         return null;
@@ -515,11 +531,22 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
     @Override
     public Void visitDeallocateStmt(DeallocateStmt s) {
-        add(TamOpcode.LOADL, null, 0, 1);
-
         Symbol sym = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow();
         MemoryLayoutManager.TamAddress addr = layoutManager.getAddress(sym);
+
         add(TamOpcode.LOAD, TamRegister.LB, 1, addr.offset());
+        // stack: [ allocated_adr + 1 ] (because we are storing size of allocated memory below the addr)
+        callPrimitive(Primitives.PRED);
+        // stack: [ allocated_adr ]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        // stack: [ allocated_adr, allocated_adr ]
+        add(TamOpcode.LOADI, null, 1, 0);
+        // stack: [ allocated_adr, size ]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
+        // stack: [ allocated_adr, size, allocated_adr ]
+        add(TamOpcode.POP, null, 2, 1);
+        // stack: [ size, allocated_adr ]
+
 
         callPrimitive(Primitives.DISPOSE);
         return null;

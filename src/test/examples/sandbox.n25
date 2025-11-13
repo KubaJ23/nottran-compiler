@@ -1,11 +1,132 @@
-program test
-    integer :: b, a
-    b = 3
-    a = 3
-    write b ** a
-end program test
+! --- Complex Stress Test for Nottran Compiler ---
 
-type person
+! --- Derived Type Definition ---
+type item
     integer :: id
     character :: name
-end type person
+    integer(3) :: sales_history ! Array *inside* a struct
+end type item
+
+! --- Recursive Function Test ---
+function factorial(n) result(res)
+    integer :: n, res
+    if (n <= 1) then
+        res = 1
+    else
+        res = n * factorial(n - 1)
+    end if
+end function factorial
+
+! --- Pass-by-Value Test ---
+subroutine pass_by_value_test(val)
+    integer :: val
+    val = 0 ! This should NOT modify the caller's variable
+end subroutine pass_by_value_test
+
+! --- Function taking a Static Derived Type ---
+function get_total_sales(record) result(total)
+    type(item) :: record
+    integer :: total, i
+
+    total = 0
+    do i = 0, 3 ! Exclusive bound, so 0, 1, 2
+        total = total + record % sales_history(i)
+    end do
+end function get_total_sales
+
+! --- Function taking a Pointer Derived Type ---
+function get_total_sales_ptr(record) result(total)
+    type(item) pointer :: record
+    integer :: total, i
+
+    total = 0
+    do i = 0, 3 ! Exclusive bound, so 0, 1, 2
+        total = total + record % sales_history(i)
+    end do
+end function get_total_sales_ptr
+
+
+! --- Main Program ---
+program complex_stress_test
+    integer :: i, f, failures, total_sales, pass_val
+    type(item) :: static_item
+    type(item) pointer :: p_item
+    character :: s1, s2
+
+    failures = 0
+    write "===== Running Complex Stress Test ====="
+
+    ! 1. Test Static Derived Type
+    write "--- 1. Testing Static Derived Type ---"
+    static_item % id = 101
+    static_item % name = "Static ""Shield"""
+    static_item % sales_history(0) = 10
+    static_item % sales_history(1) = 20
+    static_item % sales_history(2) = 30
+
+    total_sales = get_total_sales(static_item)
+    write "Static Sales (Exp. 60):", total_sales
+    if (total_sales /= 60) then
+        failures = failures + 1
+    end if
+
+    ! 2. Test Pointer to Derived Type
+    write "--- 2. Testing Pointer to Derived Type ---"
+    allocate p_item
+    p_item % id = 202
+    p_item % name = "Dynamic Potion"
+    p_item % sales_history(0) = 1
+    p_item % sales_history(1) = 2
+    p_item % sales_history(2) = 3
+
+    total_sales = get_total_sales_ptr(p_item)
+    write "Dynamic Sales (Exp. 6):", total_sales
+    if (total_sales /= 6) then
+        failures = failures + 1
+    end if
+
+    p_item % sales_history(1) = 50 ! Test complex LValue
+    total_sales = p_item % sales_history(0) + p_item % sales_history(1) + p_item % sales_history(2)
+    write "Dynamic Sales after update (Exp. 54):", total_sales
+    if (total_sales /= 54) then
+        failures = failures + 1
+    end if
+
+    ! 3. Test String Concat & Field Access
+    write "--- 3. Testing String Concat ---"
+    s1 = static_item % name // " and "
+    s2 = s1 // p_item % name
+    write "Combined names:", s2
+    write "(Expected: Static ""Shield"" and Dynamic Potion)"
+
+    deallocate p_item
+
+    ! 4. Test Recursion
+    write "--- 4. Testing Recursion ---"
+    f = factorial(5)
+    write "Factorial(5) (Exp. 120):", f
+    if (f /= 120) then
+        failures = failures + 1
+    end if
+
+    ! 5. Test Pass-by-Value (for simple integers)
+    write "--- 5. Testing Pass-by-Value ---"
+    pass_val = 99
+    call pass_by_value_test(pass_val)
+    write "Value after call (Exp. 99):", pass_val
+    if (pass_val /= 99) then
+        failures = failures + 1
+    end if
+
+    ! 6. Test BOZ Literals & Operator Precedence
+    write "--- 6. Testing BOZ & Precedence ---"
+    i = (b"101" + o"10") ** 2 ! (5 + 8) ** 2 = 169
+    write "(5+8)**2 (Exp. 169):", i
+    if (i /= 169) then
+        failures = failures + 1
+    end if
+
+    write "===== Test Complete ====="
+    write "Total Failures:", failures
+
+end program complex_stress_test

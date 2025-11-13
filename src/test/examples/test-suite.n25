@@ -208,8 +208,7 @@ function test_pointers() result(res)
     x = p_arr(0) + p_arr(4)
     write "  Pointer array (Expected 600):", x
 
-    ! for now not testing deallocate statement as it requires correct length of deallocation to be defined
-    ! deallocate p_arr
+    deallocate p_arr
 
     res = 1
 end function test_pointers
@@ -230,7 +229,7 @@ function test_derived_types() result(res)
     p_ptr % name = "pointer_person"
     write "  Derived type pointer id (Expected 88):", p_ptr % id
     write "  Derived type pointer name (Expected pointer_person):", p_ptr % name
-    ! deallocate p_ptr
+    deallocate p_ptr
     res = 1
 end function test_derived_types
 
