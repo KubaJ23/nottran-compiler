@@ -12,7 +12,7 @@ subroutine test_sub_helper(a, b)
     write "  Subroutine OK (Expected 42, test):", a, b
 end subroutine test_sub_helper
 
-! 1. Tests relational operators
+! Tests relational operators
 function test_rel_ops() result(res)
     integer :: a, b, res
     logical :: l1, l2

@@ -19,7 +19,7 @@ public enum Primitives {
     ID(1),
 
     /**
-     * Logical NOT: t -> t' (Set t' = ¬t)
+     * Logical NOT: t -> t' (Set t' = ¬t). A Logical NOT, as opposed to a bit-wise NOT.
      */
     NOT(2),
 
