@@ -417,106 +417,118 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     }
 
     private void handleReadString(Expression lval) {
-        // --- Read String from Input ---
-        // Strategy:
-        // 1. Initialize lval with an empty string (length 0).
-        // 2. Loop:
-        //    a. Push current lval (accumulator) to stack.
-        //    b. Allocate a new 1-char string on heap.
-        //    c. Read character into that heap string.
-        //    d. Check if EOL.
-        //    e. If not EOL: concat(accum, new), update lval, repeat.
-        //    f. If EOL: cleanup stack, exit.
 
-        // Initialize lval with empty string ""
-        add(TamOpcode.LOADL, null, 0, 1); // [1]
-        callPrimitive(Primitives.NEW);    // [empty_ptr]
+        add(TamOpcode.LOADL, null, 0, 1);            // allocate 1 word for empty string
+        // [1]
 
-        // Set length to 0 at empty_ptr[0]
-        add(TamOpcode.LOADL, null, 0, 0);
-        // [empty_ptr, 0]
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);
-        // [empty_ptr, 0, empty_ptr]
-        add(TamOpcode.STOREI, null, 1, 0);
+        callPrimitive(Primitives.NEW);               // empty_ptr
         // [empty_ptr]
 
-        // Store empty string in lval variable
-        visitForAddress(lval); // [empty_ptr, lval_addr]
-        add(TamOpcode.STOREI, null, 1, 0); // []
+        add(TamOpcode.LOADL, null, 0, 0);            // prepare length 0
+        // [empty_ptr, 0]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);  // dup empty_ptr
+        // [empty_ptr, 0, empty_ptr]
+
+        add(TamOpcode.STOREI, null, 1, 0);           // empty_ptr[0] = 0
+        // [empty_ptr]
+
+        visitForAddress(lval);                       // lval_addr
+        // [empty_ptr, lval_addr]
+
+        add(TamOpcode.STOREI, null, 1, 0);           // lval = empty_ptr
+        // []
 
         String loopStart = newLabel("read_loop");
         String loopEnd = newLabel("read_end");
 
         placeLabel(loopStart);
-        // Stack: []
+        // []
 
-        // 2. Load Accumulator (Current lval value)
-        visit(lval); // get the address of string[0]
-        // Stack: [accum_ptr]
+        visit(lval);                                 // load accumulator pointer
+        // [accum_ptr]
 
-        // 3. Allocate 1-char string on heap
-        // Size = 1 (length word) + 1 (data word) = 2 words
-        add(TamOpcode.LOADL, null, 0, 2); // [accum_ptr, 2]
-        callPrimitive(Primitives.NEW);    // [accum_ptr, new_ptr]
+        add(TamOpcode.LOADL, null, 0, 2);            // size for new 1 char string
+        // [accum_ptr, 2]
 
-        // Set length = 1 at new_ptr[0]
-        add(TamOpcode.LOADL, null, 0, 1);           // [accum_ptr, new_ptr, 1]
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -2); // Dup new_ptr -> [accum_ptr, new_ptr, 1, new_ptr]
-        // store length of new string
-        add(TamOpcode.STOREI, null, 1, 0);          // [accum_ptr, new_ptr]
+        callPrimitive(Primitives.NEW);               // new_ptr
+        // [accum_ptr, new_ptr]
 
-        // 4. Read character into new_ptr[1]
-        // Calculate address: new_ptr + 1
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // Dup new_ptr -> [accum_ptr, new_ptr, new_ptr]
-        callPrimitive(Primitives.SUCC);              // [accum_ptr, new_ptr, char_addr]
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
+        add(TamOpcode.LOADL, null, 0, 1);            // set length = 1
+        // [accum_ptr, new_ptr, 1]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -2);  // dup new_ptr
+        // [accum_ptr, new_ptr, 1, new_ptr]
+
+        add(TamOpcode.STOREI, null, 1, 0);           // new_ptr[0] = 1
+        // [accum_ptr, new_ptr]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);  // dup new_ptr for char address
+        // [accum_ptr, new_ptr, new_ptr]
+
+        callPrimitive(Primitives.SUCC);              // address of char slot
+        // [accum_ptr, new_ptr, char_addr]
+
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);  // dup char_addr for GET
         // [accum_ptr, new_ptr, char_addr, char_addr]
 
-        // Call GET to read char into heap at char_addr
-        callPrimitive(Primitives.GET);
-        // // [accum_ptr, new_ptr, char_addr] (Char is now in heap)
+        callPrimitive(Primitives.GET);               // read char into heap
+        // [accum_ptr, new_ptr, char_addr]
 
-        // 5. Check EOL
-        add(TamOpcode.LOADI, null, 1, 0);           // [accum_ptr, new_ptr, char_val]
+        add(TamOpcode.LOADI, null, 1, 0);            // load char value
+        // [accum_ptr, new_ptr, char_val]
 
-        // Check LF (10)
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // Dup char_val -> [accum_ptr, new_ptr, char_val, char_val]
-        add(TamOpcode.LOADL, null, 0, 10);          // [accum_ptr, new_ptr, char_val, char_val, 10]
-        add(TamOpcode.LOADL, null, 0, 1);               // [accum_ptr, new_ptr, char_val, char_val, 10, 1]
-        callPrimitive(Primitives.EQ);               // [accum_ptr, new_ptr, char_val, is_LF]
-        addJumpIf(1, loopEnd);                      // Pops is_LF. Stack if jump: [accum_ptr, new_ptr, char_val]
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);  // dup char_val for LF check
+        // [accum_ptr, new_ptr, char_val, char_val]
 
-        // Check CR (13)
-        add(TamOpcode.LOAD, TamRegister.ST, 1, -1); // Dup char_val -> [accum_ptr, new_ptr, char_val, char_val]
-        add(TamOpcode.LOADL, null, 0, 13);          // [accum_ptr, new_ptr, char_val, char_val, 13]
-        add(TamOpcode.LOADL, null, 0, 1);               // [accum_ptr, new_ptr, char_val, char_val, 13, 1]
-        callPrimitive(Primitives.EQ);               // [accum_ptr, new_ptr, char_val, is_CR]
-        addJumpIf(1, loopEnd);                      // Pops is_CR. Stack if jump: [accum_ptr, new_ptr, char_val]
+        add(TamOpcode.LOADL, null, 0, 10);           // LF
+        // [accum_ptr, new_ptr, char_val, char_val, 10]
 
-        // 6. Not EOL: Concatenate
-        // Stack: [accum_ptr, new_ptr, char_val]
+        add(TamOpcode.LOADL, null, 0, 1);
+        // [accum_ptr, new_ptr, char_val, char_val, 10, 1]
 
-        // Pop char_val (no longer needed)
-        add(TamOpcode.POP, null, 0, 1);
-        // Stack: [accum_ptr, new_ptr]
+        callPrimitive(Primitives.EQ);                // is LF
+        // [accum_ptr, new_ptr, char_val, is_LF]
 
-        // Call Concat (Accum // New)
-        // Takes 2 args, returns 1 result
-        generateStringConcat();
-        // Stack: [res_ptr]
+        addJumpIf(1, loopEnd);                       // pop is_LF if jump
+        // if jump: [accum_ptr, new_ptr, char_val]
 
-        // 7. Update lval with new result pointer
-        visitForAddress(lval); // [res_ptr, lval_addr]
-        add(TamOpcode.STOREI, null, 1, 0); // []
+        add(TamOpcode.LOAD, TamRegister.ST, 1, -1);  // dup char_val for CR check
+        // [accum_ptr, new_ptr, char_val, char_val]
+
+        add(TamOpcode.LOADL, null, 0, 13);           // CR
+        // [accum_ptr, new_ptr, char_val, char_val, 13]
+
+        add(TamOpcode.LOADL, null, 0, 1);
+        // [accum_ptr, new_ptr, char_val, char_val, 13, 1]
+
+        callPrimitive(Primitives.EQ);                // is CR
+        // [accum_ptr, new_ptr, char_val, is_CR]
+
+        addJumpIf(1, loopEnd);                       // pop is_CR if jump
+        // if jump: [accum_ptr, new_ptr, char_val]
+
+        add(TamOpcode.POP, null, 0, 1);              // discard char_val
+        // [accum_ptr, new_ptr]
+
+        generateStringConcat();                      // concat strings
+        // [res_ptr]
+
+        visitForAddress(lval);                       // prepare store back to lval
+        // [res_ptr, lval_addr]
+
+        add(TamOpcode.STOREI, null, 1, 0);           // lval = res_ptr
+        // []
 
         addJump(loopStart);
 
-        // 8. Exit Loop
         placeLabel(loopEnd);
-        // Stack here is: [accum_ptr, new_ptr, char_val] (Because we jumped mid-check)
-        // We need to pop these 3 items to restore clean stack state.
-        add(TamOpcode.POP, null, 0, 3); // []
+        // [accum_ptr, new_ptr, char_val]
+
+        add(TamOpcode.POP, null, 0, 3);              // clean up
+        // []
     }
+
 
     @Override
     public Void visitWriteStmt(WriteStmt s) {

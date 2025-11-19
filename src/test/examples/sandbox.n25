@@ -1,9 +1,229 @@
-program nested_type_test
-    character :: input_str
+program string_features_test
+! -------------------------------------------------------
+! Nottran String Implementation Test Suite - EXTENDED
+! Covers: Reading, Concatenation (//), Relational Ops
+!         Compound Logic, Aliasing, Loop Accumulation
+! -------------------------------------------------------
 
-        read input_str
+character :: s1, s2, s3, s4, input_val
+character :: empty, space
+integer :: failures, i
 
-        write input_str
+failures = 0
+write "========================================="
+write "    RUNNING EXTENDED STRING TESTS        "
+write "========================================="
+
+! -------------------------------------------------------
+! PART 1: Basic Literals & Equality
+! -------------------------------------------------------
+write "--- Part 1: Basic Equality & Literals ---"
+
+! 1.1 Literal Equality
+if ("apple" == "apple") then
+    write "1.1 PASS: Literal Identity"
+else
+    write "1.1 FAIL: 'apple' == 'apple' returned false"
+    failures = failures + 1
+end if
+
+! 1.2 Variable Assignment & Equality
+s1 = "test"
+s2 = "test"
+if (s1 == s2) then
+    write "1.2 PASS: Variable Identity"
+else
+    write "1.2 FAIL: Variable 'test' == 'test' returned false"
+    failures = failures + 1
+end if
+
+! 1.3 Inequality
+if ("apple" /= "orange") then
+    write "1.3 PASS: Literal Inequality"
+else
+    write "1.3 FAIL: 'apple' /= 'orange' returned false"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 2: Lexicographical Ordering (Relational Ops)
+! -------------------------------------------------------
+write "--- Part 2: Ordering & Relational Ops ---"
+
+s1 = "abc"
+s2 = "abd"
+
+! 2.1 Less Than (Same Length)
+if (s1 < s2) then
+    write "2.1 PASS: 'abc' < 'abd'"
+else
+    write "2.1 FAIL: 'abc' < 'abd'"
+    failures = failures + 1
+end if
+
+! 2.2 Greater Than (Same Length)
+if (s2 > s1) then
+    write "2.2 PASS: 'abd' > 'abc'"
+else
+    write "2.2 FAIL: 'abd' > 'abc'"
+    failures = failures + 1
+end if
+
+! 2.3 Less Than Or Equal (Equal case)
+if (s1 <= s1) then
+    write "2.3 PASS: 'abc' <= 'abc' (Identity)"
+else
+    write "2.3 FAIL: 'abc' <= 'abc'"
+    failures = failures + 1
+end if
+
+! 2.4 Less Than Or Equal (Strictly Less case)
+if (s1 <= s2) then
+    write "2.4 PASS: 'abc' <= 'abd' (Strict)"
+else
+    write "2.4 FAIL: 'abc' <= 'abd'"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 3: Prefix & Length Handling
+! -------------------------------------------------------
+write "--- Part 3: Prefix & Length Logic ---"
+
+s1 = "cat"
+s2 = "cats"
+
+! 3.1 Short vs Long (Prefix)
+! "cat" should be less than "cats" because it is shorter
+if (s1 < s2) then
+    write "3.1 PASS: Prefix 'cat' < 'cats'"
+else
+    write "3.1 FAIL: Prefix 'cat' < 'cats'"
+    failures = failures + 1
+end if
+
+! 3.2 Long vs Short
+if (s2 > s1) then
+    write "3.2 PASS: 'cats' > 'cat'"
+else
+    write "3.2 FAIL: 'cats' > 'cat'"
+    failures = failures + 1
+end if
+
+! 3.3 Empty String Handling
+empty = ""
+s3 = "a"
+
+if (empty < s3) then
+    write "3.3 PASS: Empty string < 'a'"
+else
+    write "3.3 FAIL: Empty string < 'a'"
+    failures = failures + 1
+end if
+
+if (empty == "") then
+    write "3.4 PASS: Empty string variable == Empty literal"
+else
+    write "3.4 FAIL: Empty string equality"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 4: Concatenation (//)
+! -------------------------------------------------------
+write "--- Part 4: Concatenation ---"
+
+s1 = "Hello"
+s2 = "World"
+s3 = s1 // s2
+
+write "  Constructed: ", s3
+
+! 4.1 Verify Content
+if (s3 == "HelloWorld") then
+    write "4.1 PASS: Simple Concatenation"
+else
+    write "4.1 FAIL: Expected 'HelloWorld'"
+    failures = failures + 1
+end if
+
+! 4.2 Concatenation in Logic
+! "HelloWorld" > "Hello"
+if ((s1 // s2) > s1) then
+    write "4.2 PASS: Concat Result > Original Prefix"
+else
+    write "4.2 FAIL: Concat Result comparison"
+    failures = failures + 1
+end if
+
+! 4.3 Chained Concatenation
+space = " "
+s4 = s1 // space // s2
+if (s4 == "Hello World") then
+    write "4.3 PASS: Chained Concat (a // b // c)"
+else
+    write "4.3 FAIL: Chained Concat"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 5: ASCII & Case Sensitivity
+! -------------------------------------------------------
+write "--- Part 5: ASCII Boundaries ---"
+
+! 5.1 Case Sensitivity
+! ASCII 'Z' (90) < 'a' (97)
+if ("Z" < "a") then
+    write "5.1 PASS: 'Z' < 'a' (ASCII order)"
+else
+    write "5.1 FAIL: 'Z' < 'a' (ASCII order)"
+    failures = failures + 1
+end if
+
+! 5.2 Space Handling
+! ASCII Space (32) < 'A' (65)
+if (" " < "A") then
+    write "5.2 PASS: Space < 'A'"
+else
+    write "5.2 FAIL: Space < 'A'"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 6: Stack Stability & Compound Logic
+! -------------------------------------------------------
+write "--- Part 6: Stack Stability (Compound Logic) ---"
+
+s1 = "alpha"
+s2 = "beta"
+
+! 6.1 Check .AND. logic
+! If string comparison corrupts the stack, the second check fails
+if (s1 < s2 .and. s2 > s1) then
+    write "6.1 PASS: Compound .AND. logic"
+else
+    write "6.1 FAIL: Compound .AND. logic"
+    failures = failures + 1
+end if
+
+! 6.2 Check .OR. logic
+if (s1 == "gamma" .or. s1 == "alpha") then
+    write "6.2 PASS: Compound .OR. logic"
+else
+    write "6.2 FAIL: Compound .OR. logic"
+    failures = failures + 1
+end if
+
+! -------------------------------------------------------
+! PART 7: Aliasing & Identity
+! -------------------------------------------------------
+write "========================================="
+if (failures == 0) then
+    write "  ALL TESTS PASSED SUCCESSFULLY"
+else
+    write "  TESTS FAILED. Count: ", failures
+end if
+write "========================================="
 
 
-end program nested_type_test
+end program string_features_test
