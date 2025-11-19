@@ -25,3 +25,6 @@ This project contains the files for TAM in the directory `triangle-abstract-mach
 - Pointers are always dereferenced when used except when they are used in allocate statements, deallocate statements, and as arguments to functions/procedures.
 - Write statement only writes intrinsic types, so you (Nottran programmer) must implement print statements for your arrays and derived types (like in most languages).
 - Character sequences/strings uses: assignment, concatenation operator, reading user input (one char at a time), writing to output.
+- There are limitations to using return values from expressions and using them immediately in some statements, so you should instead assign (for example) the return value from a function to a variable first, then use that variable. 
+- Printing a derived type or array will print their address in memory.
+- 

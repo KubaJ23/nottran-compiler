@@ -99,7 +99,7 @@ public enum Primitives {
     EQ(17),
 
     /**
-     * Not equal: v1, v2, n -> t' (Set t' = true iff v1 ≠ v2, where v1 and v2 are n-word values)
+     * Not equal: v1, v2, n -> t' (Set t' = true iff v1 != v2, where v1 and v2 are n-word values)
      */
     NE(18),
 
