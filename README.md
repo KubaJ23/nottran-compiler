@@ -22,4 +22,5 @@ This project contains the files for TAM in the directory `triangle-abstract-mach
 - No way to change the value of a pointer besides the allocate statement.
 - Pointers are always dereferenced when used except when they are used in allocate statements, deallocate statements, and as arguments to functions/procedures.
 - Printing a derived type or array will print their address in memory.
-- 
+- The TAM machine (triangle-abstract-machine-main) used to run the Nottran program (output.tam) has a bug with the '.or.' operator. For example '(.false. .or. .false.)' will return true instead of false. This is a bug in the TAM machine and not in the Nottran compiler.
+- This compiler does not support Real numbers.
