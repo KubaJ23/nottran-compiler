@@ -1,5 +1,6 @@
 package uk.ac.nott.cs.comp3012.coursework.tam;
 
+import uk.ac.nott.cs.comp3012.coursework.CompilerException;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.FunctionDecl;
 import uk.ac.nott.cs.comp3012.coursework.ast.Ast.ProgramUnit.ProgramDecl;
@@ -161,7 +162,7 @@ public class MemoryLayoutManager {
             case Type.ArrayType a -> {
                 // An array with unknown dimensions is treated as a simple pointer, size 1.
                 if (a.dimensions().stream().anyMatch(d -> d instanceof Dimension.Unknown)) {
-                    yield 1;
+                    throw new CompilerException(null, "Cannot determine size of array with unknown dimensions.");
                 }
                 // A static array's size is the product of its dimensions * base type size.
                 int arraySize = a.dimensions().stream().map(d -> (Dimension.Known) d).mapToInt(Dimension.Known::size).reduce(1, (x, y) -> x * y);

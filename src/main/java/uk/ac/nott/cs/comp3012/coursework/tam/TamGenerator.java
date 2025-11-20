@@ -115,20 +115,23 @@ public class TamGenerator extends AstBaseVisitor<Void> {
             }
             case CallOrIndexExpr cie -> {
                 // This is an array index
-                visitForAddress(cie.base());
 
-                // Calculate offset
+                // Put address of array start to top of stack
+                visitForAddress(cie.base()); // could be field access, or name expr
+
                 Type baseType = getBaseType(cie.base());
-
                 if (!(baseType instanceof Type.ArrayType arrType)) throw new CompilerException(e.startToken(), "This expression is not an assignable lvalue.");
 
+                // Calculate offset
+                // Stack: [ arr_base_addr ]
                 if (arrType.dimensions().stream().allMatch(d -> d instanceof Dimension.Known)) {
                     generateStaticArrayOffset(cie, arrType);
                 } else {
                     generatePointerArrayOffset(cie, arrType);
                 }
-
+                // Stack: [ arr_base_addr, final_index ]
                 callPrimitive(Primitives.ADD);
+                // Stack: [ final_element_addr ]
             }
             default -> throw new CompilerException(e.startToken(), "This expression is not an assignable lvalue.");
         }
@@ -159,40 +162,93 @@ public class TamGenerator extends AstBaseVisitor<Void> {
 
         List<Dimension> dims = arrType.dimensions();
         List<Expression> args = cie.arguments();
+        int elementSize = layoutManager.getSize(arrType.baseType());
 
         if (dims.size() != args.size()) {
             throw new CompilerException(cie.startToken(), "Incorrect number of array dimensions. Expected " + dims.size() + " but got " + args.size());
         }
 
+        // Push the first index
         visit(args.getFirst());
+        // Stack: [ index_accumulator ]
 
+        // Apply Horner's Method: acc = (acc * Dim_size) + next_index
         for (int i = 1; i < args.size(); i++) {
             Dimension.Known dim = (Dimension.Known) dims.get(i);
+
             add(TamOpcode.LOADL, null, 0, dim.size());
+            // Stack: [ acc, dim_size ]
+
             callPrimitive(Primitives.MULT);
+            // Stack: [ acc * dim_size ]
+
             visit(args.get(i));
+            // Stack: [ partial_acc, next_index ]
+
             callPrimitive(Primitives.ADD);
+            // Stack: [ new_acc ]
         }
-    }
+        // Stack: [ index_accumulator ]
 
-    /**
-     * Generates code to calculate an offset for a POINTER array.
-     * It leaves the final calculated offset (1 word) on top of the stack.
-     * Formula: offset = i * sizeof(baseType)
-     */
-    private void generatePointerArrayOffset(CallOrIndexExpr cie, Type.ArrayType arrType) {
-        if (cie.arguments().size() != 1) {
-            throw new CompilerException(cie.startToken(), "Pointer array indexing only supports one dimension.");
-        }
-
-        int elementSize = layoutManager.getSize(arrType.baseType());
-
-        visit(cie.arguments().getFirst());
-
+        // Multiply by the element size
         if (elementSize > 1) {
             add(TamOpcode.LOADL, null, 0, elementSize);
             callPrimitive(Primitives.MULT);
         }
+        // Stack: [ final_array_index ]
+    }
+
+    /**
+     * Generates code to calculate an offset for a POINTER array.
+     * Assumes the base address of the array is already on top of the stack.
+     * It leaves the final calculated offset (1 word) on top of the stack.
+     */
+    private void generatePointerArrayOffset(CallOrIndexExpr cie, Type.ArrayType arrType) {
+        // Stack: [ arr_base_addr ]
+
+        if (cie.arguments().isEmpty()) {
+            throw new CompilerException(cie.startToken(), "Pointer array indexing requires specification of indexes.");
+        }
+
+        int elementSize = layoutManager.getSize(arrType.baseType());
+        int numDimensions = arrType.dimensions().size();
+
+        if (cie.arguments().size() != numDimensions) {
+            throw new CompilerException(cie.startToken(), "Incorrect number of array dimensions. Expected " + numDimensions + " but got " + cie.arguments().size());
+        }
+
+        add(TamOpcode.LOADL, null, 0, 0); // initialize offset to 0
+        // Stack: [ arr_base_addr, 0 ]
+        for (int i = 0; i < numDimensions; i++) {
+            // Stack: [ arr_base_addr, offset_accumulator ]
+            visit(cie.arguments().get(i));
+            // Stack: [ arr_base_addr, offset_accumulator, index_expr_i ]
+            for (int j = i + 1; j < numDimensions; j++) {
+                add(TamOpcode.LOAD, TamRegister.ST, 1, -3); // duplicate arr_base_addr
+                // Stack: [ arr_base_addr, offset_accumulator, index_expr_i, arr_base_addr ]
+                add(TamOpcode.LOADL, null, 0, j); // load index j
+                // Stack: [ arr_base_addr, offset_accumulator, index_expr_i, arr_base_addr, index_j ]
+                callPrimitive(Primitives.ADD);
+                // Stack: [ arr_base_addr, offset_accumulator, index_expr_i, addr_of_dim_j ]
+                add(TamOpcode.LOADI, null, 1, 0); // load size of dimension j
+                // Stack: [ arr_base_addr, offset_accumulator, index_expr_i, dim_j_size ]
+                callPrimitive(Primitives.MULT);
+                // Stack: [ arr_base_addr, offset_accumulator, dim_offset ]
+            }
+            // Stack: [ arr_base_addr, offset_accumulator, index_i_offset ]
+            callPrimitive(Primitives.ADD);
+            // Stack: [ arr_base_addr, offset_accumulator ]
+        }
+
+        // Stack: [ arr_base_addr, total_index ]
+        add(TamOpcode.LOADL, null, 0, elementSize);
+        // Stack: [ arr_base_addr, total_index, element_size ]
+        callPrimitive(Primitives.MULT);
+        // Stack: [ arr_base_addr, total_offset ]
+        add(TamOpcode.LOADL, null, 0, numDimensions);
+        // Stack: [ arr_base_addr, total_offset, num_dimensions ]
+        callPrimitive(Primitives.ADD);
+        // Stack: [ arr_base_addr, final_index ]
     }
 
     // AST nodes below
@@ -596,8 +652,13 @@ public class TamGenerator extends AstBaseVisitor<Void> {
     public Void visitAllocateStmt(AllocateStmt s) {
         Symbol ptrSymbol = scopeStack.peek().getSymbol(s.pointerName()).orElseThrow();
         Type.PointerType pt = (Type.PointerType) ptrSymbol.type();
-        int baseSize = layoutManager.getSize(pt.baseType());
 
+        int baseSize;
+        if (pt.baseType() instanceof Type.ArrayType(Type baseType, List<Dimension> dimensions) && dimensions.stream().anyMatch(d -> d instanceof Dimension.Unknown)) {
+            baseSize = layoutManager.getSize(baseType);
+        } else {
+            baseSize = layoutManager.getSize(pt.baseType());
+        }
         if (s.dimensions().isEmpty()) {
             add(TamOpcode.LOADL, null, 0, baseSize);
         } else {
@@ -610,6 +671,17 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         // stack: [ size_to_allocate ]
         callPrimitive(Primitives.SUCC);
         // stack: [ tot_size ]
+
+        // If there are unknown dimensions, we need to add space for storing their sizes
+        if (pt.baseType() instanceof Type.ArrayType(Type baseType, List<Dimension> dimensions) && dimensions.stream().anyMatch(d -> d instanceof Dimension.Unknown)) {
+            int dimCount = s.dimensions().size();
+            add(TamOpcode.LOADL, null, 0, dimCount);
+            // stack: [ tot_size, num_dimensions ]
+            callPrimitive(Primitives.ADD);
+            // stack: [ tot_size + num_dimensions ]
+        }
+        // stack: [ tot_size ]
+
         add(TamOpcode.LOAD, TamRegister.ST, 1, -1);
         // stack: [ tot_size, tot_size ]
 
@@ -626,10 +698,25 @@ public class TamGenerator extends AstBaseVisitor<Void> {
         callPrimitive(Primitives.SUCC);
         // stack: [ allocated_addr + 1 ]
 
-        MemoryLayoutManager.TamAddress ptrAddr = layoutManager.getAddress(ptrSymbol);
-        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset()); // stack: [ allocated_addr + 1, ptr_addr ]
+        if (pt.baseType() instanceof Type.ArrayType(Type baseType, List<Dimension> dimensions) && dimensions.stream().anyMatch(d -> d instanceof Dimension.Unknown)) {
+            // for dynamic arrays, the dimension sizes are stored from the start of the array in the order of allocation.
+            for (Expression dimExpr : s.dimensions()) {
+                visit(dimExpr);
+            }
+            // stack: [ arr_start, dim_size0, dim_size1, ... ]
+            // Now store each dimension size in the allocated space
+            int dimCount = s.dimensions().size();
+            add(TamOpcode.LOAD, TamRegister.ST, 1, -dimCount - 1); // duplicate arr_start
+            // stack: [ arr_start, dim_size0, dim_size1, ..., arr_start ]
+            add(TamOpcode.STOREI, null, dimCount, 0); // store all dimension sizes at the start of the dynamic array
+            // stack: [ arr_start ]
+        }
 
-        add(TamOpcode.STOREI, null, 1, 0); // stack: []
+        MemoryLayoutManager.TamAddress ptrAddr = layoutManager.getAddress(ptrSymbol);
+        add(TamOpcode.LOADA, TamRegister.LB, 0, ptrAddr.offset());
+        // stack: [ arr_start, ptr_addr ]
+        add(TamOpcode.STOREI, null, 1, 0);
+        // stack: []
         return null;
     }
 

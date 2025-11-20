@@ -1,229 +1,778 @@
-program string_features_test
-! -------------------------------------------------------
-! Nottran String Implementation Test Suite - EXTENDED
-! Covers: Reading, Concatenation (//), Relational Ops
-!         Compound Logic, Aliasing, Loop Accumulation
-! -------------------------------------------------------
+! =============================================================================
+! Nottran Multidimensional Array - COMPREHENSIVE TEST SUITE
+! =============================================================================
+! This test suite rigorously validates:
+!   - Static 1D, 2D, 3D arrays
+!   - Dynamic 1D, 2D, 3D arrays (pointers)
+!   - Non-square dimensions (to catch stride calculation bugs)
+!   - Arrays of derived types (static and dynamic)
+!   - Multidimensional arrays of derived types
+!   - Edge cases: single-element arrays, large indices, boundary writes
+!   - Memory ordering (row-major verification)
+!   - Re-allocation safety
+! =============================================================================
 
-character :: s1, s2, s3, s4, input_val
-character :: empty, space
-integer :: failures, i
+! --- Derived Type Definitions ---
+type vec3
+    integer :: x, y, z
+end type vec3
 
-failures = 0
-write "========================================="
-write "    RUNNING EXTENDED STRING TESTS        "
-write "========================================="
+type matrix_cell
+    integer :: value
+    logical :: visited
+end type matrix_cell
 
-! -------------------------------------------------------
-! PART 1: Basic Literals & Equality
-! -------------------------------------------------------
-write "--- Part 1: Basic Equality & Literals ---"
+type nested_data
+    integer :: id
+    integer(2) :: coords
+end type nested_data
 
-! 1.1 Literal Equality
-if ("apple" == "apple") then
-    write "1.1 PASS: Literal Identity"
-else
-    write "1.1 FAIL: 'apple' == 'apple' returned false"
-    failures = failures + 1
-end if
+! --- Helper Functions ---
+function compute_expected(r, c, stride) result(val)
+    integer :: r, c, stride, val
+    val = (r * stride) + c
+end function compute_expected
 
-! 1.2 Variable Assignment & Equality
-s1 = "test"
-s2 = "test"
-if (s1 == s2) then
-    write "1.2 PASS: Variable Identity"
-else
-    write "1.2 FAIL: Variable 'test' == 'test' returned false"
-    failures = failures + 1
-end if
+! --- Main Program ---
+program comprehensive_array_test
+    ! === DECLARATIONS ===
 
-! 1.3 Inequality
-if ("apple" /= "orange") then
-    write "1.3 PASS: Literal Inequality"
-else
-    write "1.3 FAIL: 'apple' /= 'orange' returned false"
-    failures = failures + 1
-end if
+    ! Static arrays
+    integer(1) :: single_element
+    integer(15) :: static_1d
+    integer(4, 5) :: static_2d_small
+    integer(10, 3) :: static_2d_tall
+    integer(2, 20) :: static_2d_wide
+    integer(3, 3, 3) :: static_3d
 
-! -------------------------------------------------------
-! PART 2: Lexicographical Ordering (Relational Ops)
-! -------------------------------------------------------
-write "--- Part 2: Ordering & Relational Ops ---"
+    ! Dynamic arrays
+    integer(*) pointer :: dyn_1d
+    integer(*, *) pointer :: dyn_2d
+    integer(*, *, *) pointer :: dyn_3d
+    integer(*, *) pointer :: dyn_extreme_tall
+    integer(*, *) pointer :: dyn_extreme_wide
+    integer(*) pointer :: dyn_realloc
 
-s1 = "abc"
-s2 = "abd"
+    ! Derived type arrays
+    type(vec3)(5) :: static_vec_array
+    type(vec3)(*, *) pointer :: dyn_vec_2d
+    type(matrix_cell)(4, 4) :: static_matrix
+    type(matrix_cell)(*, *) pointer :: dyn_matrix
+    type(nested_data)(3) :: nested_array
 
-! 2.1 Less Than (Same Length)
-if (s1 < s2) then
-    write "2.1 PASS: 'abc' < 'abd'"
-else
-    write "2.1 FAIL: 'abc' < 'abd'"
-    failures = failures + 1
-end if
+    ! Loop variables and test counters
+    integer :: i, j, k
+    integer :: r, c, d
+    integer :: failures, test_num
+    integer :: expected, actual, sum_val
+    logical :: test_passed
 
-! 2.2 Greater Than (Same Length)
-if (s2 > s1) then
-    write "2.2 PASS: 'abd' > 'abc'"
-else
-    write "2.2 FAIL: 'abd' > 'abc'"
-    failures = failures + 1
-end if
+    ! === INITIALIZATION ===
+    failures = 0
+    test_num = 0
 
-! 2.3 Less Than Or Equal (Equal case)
-if (s1 <= s1) then
-    write "2.3 PASS: 'abc' <= 'abc' (Identity)"
-else
-    write "2.3 FAIL: 'abc' <= 'abc'"
-    failures = failures + 1
-end if
-
-! 2.4 Less Than Or Equal (Strictly Less case)
-if (s1 <= s2) then
-    write "2.4 PASS: 'abc' <= 'abd' (Strict)"
-else
-    write "2.4 FAIL: 'abc' <= 'abd'"
-    failures = failures + 1
-end if
-
-! -------------------------------------------------------
-! PART 3: Prefix & Length Handling
-! -------------------------------------------------------
-write "--- Part 3: Prefix & Length Logic ---"
-
-s1 = "cat"
-s2 = "cats"
-
-! 3.1 Short vs Long (Prefix)
-! "cat" should be less than "cats" because it is shorter
-if (s1 < s2) then
-    write "3.1 PASS: Prefix 'cat' < 'cats'"
-else
-    write "3.1 FAIL: Prefix 'cat' < 'cats'"
-    failures = failures + 1
-end if
-
-! 3.2 Long vs Short
-if (s2 > s1) then
-    write "3.2 PASS: 'cats' > 'cat'"
-else
-    write "3.2 FAIL: 'cats' > 'cat'"
-    failures = failures + 1
-end if
-
-! 3.3 Empty String Handling
-empty = ""
-s3 = "a"
-
-if (empty < s3) then
-    write "3.3 PASS: Empty string < 'a'"
-else
-    write "3.3 FAIL: Empty string < 'a'"
-    failures = failures + 1
-end if
-
-if (empty == "") then
-    write "3.4 PASS: Empty string variable == Empty literal"
-else
-    write "3.4 FAIL: Empty string equality"
-    failures = failures + 1
-end if
-
-! -------------------------------------------------------
-! PART 4: Concatenation (//)
-! -------------------------------------------------------
-write "--- Part 4: Concatenation ---"
-
-s1 = "Hello"
-s2 = "World"
-s3 = s1 // s2
-
-write "  Constructed: ", s3
-
-! 4.1 Verify Content
-if (s3 == "HelloWorld") then
-    write "4.1 PASS: Simple Concatenation"
-else
-    write "4.1 FAIL: Expected 'HelloWorld'"
-    failures = failures + 1
-end if
-
-! 4.2 Concatenation in Logic
-! "HelloWorld" > "Hello"
-if ((s1 // s2) > s1) then
-    write "4.2 PASS: Concat Result > Original Prefix"
-else
-    write "4.2 FAIL: Concat Result comparison"
-    failures = failures + 1
-end if
-
-! 4.3 Chained Concatenation
-space = " "
-s4 = s1 // space // s2
-if (s4 == "Hello World") then
-    write "4.3 PASS: Chained Concat (a // b // c)"
-else
-    write "4.3 FAIL: Chained Concat"
-    failures = failures + 1
-end if
-
-! -------------------------------------------------------
-! PART 5: ASCII & Case Sensitivity
-! -------------------------------------------------------
-write "--- Part 5: ASCII Boundaries ---"
-
-! 5.1 Case Sensitivity
-! ASCII 'Z' (90) < 'a' (97)
-if ("Z" < "a") then
-    write "5.1 PASS: 'Z' < 'a' (ASCII order)"
-else
-    write "5.1 FAIL: 'Z' < 'a' (ASCII order)"
-    failures = failures + 1
-end if
-
-! 5.2 Space Handling
-! ASCII Space (32) < 'A' (65)
-if (" " < "A") then
-    write "5.2 PASS: Space < 'A'"
-else
-    write "5.2 FAIL: Space < 'A'"
-    failures = failures + 1
-end if
-
-! -------------------------------------------------------
-! PART 6: Stack Stability & Compound Logic
-! -------------------------------------------------------
-write "--- Part 6: Stack Stability (Compound Logic) ---"
-
-s1 = "alpha"
-s2 = "beta"
-
-! 6.1 Check .AND. logic
-! If string comparison corrupts the stack, the second check fails
-if (s1 < s2 .and. s2 > s1) then
-    write "6.1 PASS: Compound .AND. logic"
-else
-    write "6.1 FAIL: Compound .AND. logic"
-    failures = failures + 1
-end if
-
-! 6.2 Check .OR. logic
-if (s1 == "gamma" .or. s1 == "alpha") then
-    write "6.2 PASS: Compound .OR. logic"
-else
-    write "6.2 FAIL: Compound .OR. logic"
-    failures = failures + 1
-end if
-
-! -------------------------------------------------------
-! PART 7: Aliasing & Identity
-! -------------------------------------------------------
-write "========================================="
-if (failures == 0) then
-    write "  ALL TESTS PASSED SUCCESSFULLY"
-else
-    write "  TESTS FAILED. Count: ", failures
-end if
-write "========================================="
+    write "============================================="
+    write " NOTTRAN MULTIDIMENSIONAL ARRAY TEST SUITE"
+    write "============================================="
+    write ""
 
 
-end program string_features_test
+    ! =========================================================================
+    ! TEST GROUP 1: SINGLE ELEMENT ARRAY (Edge Case)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Single-element array"
+
+    single_element(0) = 42
+    if (single_element(0) /= 42) then
+        write "  FAIL: Single element. Expected 42, got", single_element(0)
+        failures = failures + 1
+    else
+        write "  PASS"
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 2: STATIC 1D ARRAY - BOUNDARY TESTS
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 1D array boundaries (size 15)"
+
+    ! Fill with index * 7
+    do i = 0, 15
+        static_1d(i) = i * 7
+    end do
+
+    test_passed = .true.
+
+    ! Check first, middle, last
+    if (static_1d(0) /= 0) then
+        write "  FAIL: Index 0. Expected 0, got", static_1d(0)
+        test_passed = .false.
+    end if
+
+    if (static_1d(7) /= 49) then
+        write "  FAIL: Index 7. Expected 49, got", static_1d(7)
+        test_passed = .false.
+    end if
+
+    if (static_1d(14) /= 98) then
+        write "  FAIL: Index 14. Expected 98, got", static_1d(14)
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 3: STATIC 2D - SMALL SQUARE-ISH (4x5)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 2D array (4 rows x 5 cols)"
+
+    ! Pattern: row*100 + col (unique per cell)
+    do r = 0, 4
+        do c = 0, 5
+            static_2d_small(r, c) = (r * 100) + c
+        end do
+    end do
+
+    test_passed = .true.
+
+    ! Test all corners
+    if (static_2d_small(0, 0) /= 0) then
+        write "  FAIL: (0,0). Expected 0, got", static_2d_small(0, 0)
+        test_passed = .false.
+    end if
+
+    if (static_2d_small(0, 4) /= 4) then
+        write "  FAIL: (0,4). Expected 4, got", static_2d_small(0, 4)
+        test_passed = .false.
+    end if
+
+    if (static_2d_small(3, 0) /= 300) then
+        write "  FAIL: (3,0). Expected 300, got", static_2d_small(3, 0)
+        test_passed = .false.
+    end if
+
+    if (static_2d_small(3, 4) /= 304) then
+        write "  FAIL: (3,4). Expected 304, got", static_2d_small(3, 4)
+        test_passed = .false.
+    end if
+
+    ! Test middle
+    if (static_2d_small(2, 2) /= 202) then
+        write "  FAIL: (2,2). Expected 202, got", static_2d_small(2, 2)
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 4: STATIC 2D - TALL (10x3) - Tests column stride
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 2D tall array (10 rows x 3 cols)"
+
+    do r = 0, 10
+        do c = 0, 3
+            static_2d_tall(r, c) = (r * 10) + c
+        end do
+    end do
+
+    test_passed = .true.
+
+    ! Critical: (9,2) should be 92, not confused with (2,9)
+    if (static_2d_tall(9, 2) /= 92) then
+        write "  FAIL: (9,2). Expected 92, got", static_2d_tall(9, 2)
+        test_passed = .false.
+    end if
+
+    if (static_2d_tall(0, 2) /= 2) then
+        write "  FAIL: (0,2). Expected 2, got", static_2d_tall(0, 2)
+        test_passed = .false.
+    end if
+
+    if (static_2d_tall(5, 1) /= 51) then
+        write "  FAIL: (5,1). Expected 51, got", static_2d_tall(5, 1)
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 5: STATIC 2D - WIDE (2x20) - Tests row stride
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 2D wide array (2 rows x 20 cols)"
+
+    do r = 0, 2
+        do c = 0, 20
+            static_2d_wide(r, c) = (r * 1000) + c
+        end do
+    end do
+
+    test_passed = .true.
+
+    if (static_2d_wide(0, 19) /= 19) then
+        write "  FAIL: (0,19). Expected 19, got", static_2d_wide(0, 19)
+        test_passed = .false.
+    end if
+
+    if (static_2d_wide(1, 0) /= 1000) then
+        write "  FAIL: (1,0). Expected 1000, got", static_2d_wide(1, 0)
+        test_passed = .false.
+    end if
+
+    if (static_2d_wide(1, 19) /= 1019) then
+        write "  FAIL: (1,19). Expected 1019, got", static_2d_wide(1, 19)
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 6: STATIC 3D ARRAY (3x3x3)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 3D array (3x3x3)"
+
+    ! Pattern: i*100 + j*10 + k
+    do i = 0, 3
+        do j = 0, 3
+            do k = 0, 3
+                static_3d(i, j, k) = (i * 100) + (j * 10) + k
+            end do
+        end do
+    end do
+
+    test_passed = .true.
+
+    if (static_3d(0, 0, 0) /= 0) then
+        write "  FAIL: (0,0,0). Expected 0"
+        test_passed = .false.
+    end if
+
+    if (static_3d(2, 2, 2) /= 222) then
+        write "  FAIL: (2,2,2). Expected 222, got", static_3d(2, 2, 2)
+        test_passed = .false.
+    end if
+
+    if (static_3d(1, 2, 0) /= 120) then
+        write "  FAIL: (1,2,0). Expected 120, got", static_3d(1, 2, 0)
+        test_passed = .false.
+    end if
+
+    if (static_3d(0, 1, 2) /= 12) then
+        write "  FAIL: (0,1,2). Expected 12, got", static_3d(0, 1, 2)
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 7: DYNAMIC 1D ARRAY
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 1D array (size 100)"
+
+    allocate dyn_1d, 100
+
+    dyn_1d(0) = 1
+    dyn_1d(50) = 51
+    dyn_1d(99) = 100
+
+    test_passed = .true.
+
+    if (dyn_1d(0) /= 1) then
+        write "  FAIL: Index 0"
+        test_passed = .false.
+    end if
+
+    if (dyn_1d(50) /= 51) then
+        write "  FAIL: Index 50"
+        test_passed = .false.
+    end if
+
+    if (dyn_1d(99) /= 100) then
+        write "  FAIL: Index 99"
+        test_passed = .false.
+    end if
+
+    deallocate dyn_1d
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 8: DYNAMIC 2D - COMPREHENSIVE VALIDATION
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 2D array (6 rows x 7 cols) - Full scan"
+
+    allocate dyn_2d, 6, 7
+
+    ! Fill entire array
+    do r = 0, 6
+        do c = 0, 7
+            dyn_2d(r, c) = (r * 10) + c
+        end do
+    end do
+
+    ! Validate EVERY cell
+    test_passed = .true.
+    do r = 0, 6
+        do c = 0, 7
+            expected = (r * 10) + c
+            actual = dyn_2d(r, c)
+            if (actual /= expected) then
+                write "  FAIL at (", r
+                write ",", c
+                write "): Expected", expected
+                write ", got", actual
+                test_passed = .false.
+            end if
+        end do
+    end do
+
+    deallocate dyn_2d
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 9: DYNAMIC 2D - EXTREME TALL (50x2)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 2D extreme tall (50 rows x 2 cols)"
+
+    allocate dyn_extreme_tall, 50, 2
+
+    dyn_extreme_tall(0, 0) = 1
+    dyn_extreme_tall(0, 1) = 2
+    dyn_extreme_tall(49, 0) = 9801
+    dyn_extreme_tall(49, 1) = 9802
+    dyn_extreme_tall(25, 0) = 2501
+
+    test_passed = .true.
+
+    if (dyn_extreme_tall(0, 0) /= 1) then
+        write "  FAIL: (0,0)"
+        test_passed = .false.
+    end if
+
+    if (dyn_extreme_tall(49, 1) /= 9802) then
+        write "  FAIL: (49,1). Expected 9802, got", dyn_extreme_tall(49, 1)
+        test_passed = .false.
+    end if
+
+    if (dyn_extreme_tall(25, 0) /= 2501) then
+        write "  FAIL: (25,0)"
+        test_passed = .false.
+    end if
+
+    deallocate dyn_extreme_tall
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 10: DYNAMIC 2D - EXTREME WIDE (2x50)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 2D extreme wide (2 rows x 50 cols)"
+
+    allocate dyn_extreme_wide, 2, 50
+
+    dyn_extreme_wide(0, 0) = 10
+    dyn_extreme_wide(0, 49) = 59
+    dyn_extreme_wide(1, 0) = 110
+    dyn_extreme_wide(1, 49) = 159
+
+    test_passed = .true.
+
+    if (dyn_extreme_wide(0, 49) /= 59) then
+        write "  FAIL: (0,49). Expected 59, got", dyn_extreme_wide(0, 49)
+        test_passed = .false.
+    end if
+
+    if (dyn_extreme_wide(1, 0) /= 110) then
+        write "  FAIL: (1,0). Expected 110, got", dyn_extreme_wide(1, 0)
+        test_passed = .false.
+    end if
+
+    deallocate dyn_extreme_wide
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 11: DYNAMIC 3D ARRAY (4x5x6)
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 3D array (4x5x6)"
+
+    allocate dyn_3d, 4, 5, 6
+
+    dyn_3d(0, 0, 0) = 1
+    dyn_3d(3, 4, 5) = 999
+    dyn_3d(2, 3, 1) = 777
+    dyn_3d(1, 1, 1) = 111
+
+    test_passed = .true.
+
+    if (dyn_3d(0, 0, 0) /= 1) then
+        write "  FAIL: (0,0,0)"
+        test_passed = .false.
+    end if
+
+    if (dyn_3d(3, 4, 5) /= 999) then
+        write "  FAIL: (3,4,5). Expected 999, got", dyn_3d(3, 4, 5)
+        test_passed = .false.
+    end if
+
+    if (dyn_3d(2, 3, 1) /= 777) then
+        write "  FAIL: (2,3,1). Expected 777, got", dyn_3d(2, 3, 1)
+        test_passed = .false.
+    end if
+
+    if (dyn_3d(1, 1, 1) /= 111) then
+        write "  FAIL: (1,1,1). Expected 111, got", dyn_3d(1, 1, 1)
+        test_passed = .false.
+    end if
+
+    deallocate dyn_3d
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 12: RE-ALLOCATION SAFETY
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Pointer re-allocation safety"
+
+    allocate dyn_realloc, 10
+    dyn_realloc(9) = 123
+
+    if (dyn_realloc(9) /= 123) then
+        write "  FAIL: First allocation"
+        failures = failures + 1
+    else
+        deallocate dyn_realloc
+
+        ! Re-allocate with different size
+        allocate dyn_realloc, 50
+        dyn_realloc(0) = 999
+        dyn_realloc(49) = 888
+
+        if (dyn_realloc(0) /= 999) then
+            write "  FAIL: Re-allocation start"
+            failures = failures + 1
+        else
+            if (dyn_realloc(49) /= 888) then
+                write "  FAIL: Re-allocation end"
+                failures = failures + 1
+            else
+                write "  PASS"
+            end if
+        end if
+
+        deallocate dyn_realloc
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 13: STATIC ARRAY OF DERIVED TYPES
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static array of derived types (size 5)"
+
+    static_vec_array(0)%x = 1
+    static_vec_array(0)%y = 2
+    static_vec_array(0)%z = 3
+
+    static_vec_array(4)%x = 10
+    static_vec_array(4)%y = 20
+    static_vec_array(4)%z = 30
+
+    test_passed = .true.
+
+    if (static_vec_array(0)%x /= 1) then
+        write "  FAIL: [0].x"
+        test_passed = .false.
+    end if
+
+    if (static_vec_array(0)%z /= 3) then
+        write "  FAIL: [0].z"
+        test_passed = .false.
+    end if
+
+    if (static_vec_array(4)%y /= 20) then
+        write "  FAIL: [4].y"
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 14: DYNAMIC 2D ARRAY OF DERIVED TYPES
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 2D array of derived types (3x4)"
+
+    allocate dyn_vec_2d, 3, 4
+
+    dyn_vec_2d(0, 0)%x = 100
+    dyn_vec_2d(0, 0)%y = 200
+    dyn_vec_2d(0, 0)%z = 300
+
+    dyn_vec_2d(2, 3)%x = 999
+    dyn_vec_2d(2, 3)%y = 888
+    dyn_vec_2d(2, 3)%z = 777
+
+    dyn_vec_2d(1, 2)%x = 50
+    dyn_vec_2d(1, 2)%y = 60
+    dyn_vec_2d(1, 2)%z = 70
+
+    test_passed = .true.
+
+    if (dyn_vec_2d(0, 0)%y /= 200) then
+        write "  FAIL: (0,0).y"
+        test_passed = .false.
+    end if
+
+    if (dyn_vec_2d(2, 3)%x /= 999) then
+        write "  FAIL: (2,3).x"
+        test_passed = .false.
+    end if
+
+    if (dyn_vec_2d(1, 2)%z /= 70) then
+        write "  FAIL: (1,2).z"
+        test_passed = .false.
+    end if
+
+    deallocate dyn_vec_2d
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 15: STATIC 2D DERIVED TYPE WITH MULTIPLE FIELDS
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Static 2D matrix of derived types (4x4)"
+
+    do r = 0, 4
+        do c = 0, 4
+            static_matrix(r, c)%value = (r * 10) + c
+            if (r == c) then
+                static_matrix(r, c)%visited = .true.
+            else
+                static_matrix(r, c)%visited = .false.
+            end if
+        end do
+    end do
+
+    test_passed = .true.
+
+    if (static_matrix(0, 0)%visited /= .true.) then
+        write "  FAIL: (0,0) should be visited"
+        test_passed = .false.
+    end if
+
+    if (static_matrix(1, 2)%visited == .true.) then
+        write "  FAIL: (1,2) should not be visited"
+        test_passed = .false.
+    end if
+
+    if (static_matrix(3, 3)%value /= 33) then
+        write "  FAIL: (3,3).value"
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 16: DYNAMIC 2D DERIVED TYPE - FULL VALIDATION
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Dynamic 2D matrix (5x5) - Full check"
+
+    allocate dyn_matrix, 5, 5
+
+    do r = 0, 5
+        do c = 0, 5
+            dyn_matrix(r, c)%value = r + c
+            dyn_matrix(r, c)%visited = .false.
+        end do
+    end do
+
+    ! Mark diagonal as visited
+    do i = 0, 5
+        dyn_matrix(i, i)%visited = .true.
+    end do
+
+    test_passed = .true.
+
+    ! Validate some cells
+    if (dyn_matrix(0, 4)%value /= 4) then
+        write "  FAIL: (0,4).value"
+        test_passed = .false.
+    end if
+
+    if (dyn_matrix(2, 2)%visited /= .true.) then
+        write "  FAIL: (2,2) should be visited"
+        test_passed = .false.
+    end if
+
+    if (dyn_matrix(1, 3)%visited == .true.) then
+        write "  FAIL: (1,3) should not be visited"
+        test_passed = .false.
+    end if
+
+    deallocate dyn_matrix
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! TEST GROUP 17: DERIVED TYPE WITH NESTED ARRAY
+    ! =========================================================================
+    test_num = test_num + 1
+    write "TEST", test_num
+    write ": Derived type containing static array"
+
+    nested_array(0)%id = 1
+    nested_array(0)%coords(0) = 10
+    nested_array(0)%coords(1) = 20
+
+    nested_array(2)%id = 3
+    nested_array(2)%coords(0) = 100
+    nested_array(2)%coords(1) = 200
+
+    test_passed = .true.
+
+    if (nested_array(0)%coords(1) /= 20) then
+        write "  FAIL: nested_array[0].coords[1]"
+        test_passed = .false.
+    end if
+
+    if (nested_array(2)%id /= 3) then
+        write "  FAIL: nested_array[2].id"
+        test_passed = .false.
+    end if
+
+    if (nested_array(2)%coords(0) /= 100) then
+        write "  FAIL: nested_array[2].coords[0]"
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "  PASS"
+    else
+        failures = failures + 1
+    end if
+
+
+    ! =========================================================================
+    ! FINAL REPORT
+    ! =========================================================================
+    write ""
+    write "============================================="
+    write " TEST SUITE COMPLETE"
+    write "============================================="
+    write "Total tests run:", test_num
+
+    if (failures == 0) then
+        write ""
+        write "  *** ALL TESTS PASSED ***"
+        write ""
+    else
+        write ""
+        write "  !!! FAILURES DETECTED !!!"
+        write "  Failed test count:", failures
+        write ""
+    end if
+
+    write "============================================="
+
+end program comprehensive_array_test
