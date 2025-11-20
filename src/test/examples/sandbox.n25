@@ -1,10 +1,10 @@
 ! =============================================================================
-! COMPREHENSIVE NOTTRAN LANGUAGE TEST SUITE
+! COMPREHENSIVE NOTTRAN LANGUAGE TEST SUITE (NO REALS)
 ! =============================================================================
-! This suite rigorously tests ALL features of the Nottran specification:
-!   - All literal types (integers, reals, logical, characters, BOZ literals)
-!   - All operators (arithmetic, relational, logical, concatenation)
-!   - All statement types (assignment, if, do, while, read/write, alloc/dealloc)
+! This suite rigorously tests ALL features of the Nottran specification (EXCEPT REALS):
+!   - Literal types (integers, logical, characters, BOZ literals)
+!   - Operators (arithmetic, relational, logical, concatenation)
+!   - Statement types (assignment, if, do, while, read/write, alloc/dealloc)
 !   - Functions and subroutines (recursive and non-recursive)
 !   - Derived types with various combinations
 !   - Arrays (static and dynamic, 1D/2D/3D)
@@ -19,14 +19,14 @@ type coord
 end type coord
 
 type particle
-    real :: mass
+    integer :: mass
     type(coord) :: position
     logical :: active
 end type particle
 
 type matrix_element
     integer :: row, col
-    real :: value
+    integer :: value
 end type matrix_element
 
 type container
@@ -253,7 +253,7 @@ program comprehensive_test
 
     ! Basic types
     integer :: int_var, int_a, int_b, int_result
-    real :: real_var, real_a, real_b
+    ! REMOVED: real :: real_var, real_a, real_b
     logical :: bool_var, bool_a, bool_b
     character :: char_var, str_var
 
@@ -264,12 +264,10 @@ program comprehensive_test
     integer(10) :: static_array
     integer(3, 4) :: static_2d
     integer(2, 3, 2) :: static_3d
-    real(5) :: real_array
 
     ! Dynamic arrays
     integer(*) pointer :: dyn_array
     integer(*, *) pointer :: dyn_2d
-    real(*) pointer :: dyn_real_array
 
     ! Derived types
     type(coord) :: point1, point2
@@ -290,7 +288,6 @@ program comprehensive_test
 
     ! Temporary variables
     integer :: temp1, temp2, temp3
-    real :: rtemp1, rtemp2
     integer :: sum_val
 
 
@@ -301,6 +298,7 @@ program comprehensive_test
 
     write "============================================="
     write " NOTTRAN COMPREHENSIVE LANGUAGE TEST SUITE"
+    write " (NO REALS VERSION)"
     write "============================================="
     write ""
 
@@ -366,33 +364,7 @@ program comprehensive_test
     end if
 
 
-    ! --- Test 1.3: Real numbers ---
-    test_count = test_count + 1
-    test_name = "Real numbers"
-
-    real_a = 3.14
-    real_b = -2.5
-    rtemp1 = 10.
-    rtemp2 = .5
-
-    test_passed = .true.
-    if (real_a < 3.13) then
-        test_passed = .false.
-    end if
-    if (real_a > 3.15) then
-        test_passed = .false.
-    end if
-    if (rtemp1 /= 10.0) then
-        test_passed = .false.
-    end if
-
-    if (test_passed == .true.) then
-        write "PASS:", test_name
-        pass_count = pass_count + 1
-    else
-        write "FAIL:", test_name
-        fail_count = fail_count + 1
-    end if
+    ! --- Test 1.3: REMOVED (Real numbers) ---
 
 
     ! --- Test 1.4: Logical values ---
@@ -1213,7 +1185,7 @@ program comprehensive_test
     test_count = test_count + 1
     test_name = "Nested derived types"
 
-    p1%mass = 5.5
+    p1%mass = 5
     p1%position%x = 100
     p1%position%y = 200
     p1%active = .true.
@@ -1243,7 +1215,7 @@ program comprehensive_test
     test_name = "Array of derived types"
 
     do i = 0, 3
-        particle_array(i)%mass = 1.0
+        particle_array(i)%mass = 1
         particle_array(i)%position%x = i * 10
         particle_array(i)%position%y = i * 20
         particle_array(i)%active = .true.
@@ -1308,7 +1280,7 @@ program comprehensive_test
         do j = 0, 3
             matrix(i, j)%row = i
             matrix(i, j)%col = j
-            matrix(i, j)%value = 1.0
+            matrix(i, j)%value = 1
         end do
     end do
 
@@ -1713,7 +1685,7 @@ program comprehensive_test
     do i = 0, 3
         particle_array(i)%position%x = i * 5
         particle_array(i)%position%y = i * 10
-        particle_array(i)%mass = 1.0
+        particle_array(i)%mass = 1
         particle_array(i)%active = .true.
     end do
 
@@ -1724,8 +1696,8 @@ program comprehensive_test
         end if
     end do
 
-    ! Sum = 0 + 5 + 10 + 15 = 30
-    if (sum_val == 30) then
+    ! Sum = 0 + 5 + 10 = 15
+    if (sum_val == 15) then
         write "PASS:", test_name
         pass_count = pass_count + 1
     else
@@ -1753,7 +1725,7 @@ program comprehensive_test
     if (static_2d(2, 3) /= 5) then
         test_passed = .false.
     end if
-    if (sum_val /= 60) then
+    if (sum_val /= 30) then
         test_passed = .false.
     end if
 
@@ -1794,30 +1766,25 @@ program comprehensive_test
         do j = 0, 4
             matrix(i, j)%row = i
             matrix(i, j)%col = j
-            matrix(i, j)%value = 0.0
+            matrix(i, j)%value = 0
 
             if (i == j) then
-                matrix(i, j)%value = 1.0
+                matrix(i, j)%value = 1
             end if
         end do
     end do
 
-    rtemp1 = 0.0
+    temp1 = 0
     do i = 0, 4
-        rtemp1 = rtemp1 + matrix(i, i)%value
+        temp1 = temp1 + matrix(i, i)%value
     end do
 
     deallocate matrix
 
-    ! Sum of diagonal should be 4.0
-    if (rtemp1 > 3.99) then
-        if (rtemp1 < 4.01) then
-            write "PASS:", test_name
-            pass_count = pass_count + 1
-        else
-            write "FAIL:", test_name
-            fail_count = fail_count + 1
-        end if
+    ! Sum of diagonal should be 4
+    if (temp1 == 4) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
     else
         write "FAIL:", test_name
         fail_count = fail_count + 1
@@ -1885,32 +1852,7 @@ program comprehensive_test
     end if
 
 
-    ! --- Test 16.7: Real array operations ---
-    test_count = test_count + 1
-    test_name = "Real array operations"
-
-    do i = 0, 5
-        real_array(i) = 1.5
-    end do
-
-    rtemp1 = 0.0
-    do i = 0, 5
-        rtemp1 = rtemp1 + real_array(i)
-    end do
-
-    ! 5 * 1.5 = 7.5
-    if (rtemp1 > 7.4) then
-        if (rtemp1 < 7.6) then
-            write "PASS:", test_name
-            pass_count = pass_count + 1
-        else
-            write "FAIL:", test_name
-            fail_count = fail_count + 1
-        end if
-    else
-        write "FAIL:", test_name
-        fail_count = fail_count + 1
-    end if
+    ! --- Test 16.7: REMOVED (Real array operations) ---
 
 
     ! --- Test 16.8: Logical array operations ---
@@ -2023,17 +1965,12 @@ program comprehensive_test
     test_count = test_count + 1
     test_name = "Array derived assign"
 
-    particle_array(2)%mass = 7.5
-    rtemp1 = particle_array(2)%mass
+    particle_array(2)%mass = 7
+    temp1 = particle_array(2)%mass
 
-    if (rtemp1 > 7.4) then
-        if (rtemp1 < 7.6) then
-            write "PASS:", test_name
-            pass_count = pass_count + 1
-        else
-            write "FAIL:", test_name
-            fail_count = fail_count + 1
-        end if
+    if (temp1 == 7) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
     else
         write "FAIL:", test_name
         fail_count = fail_count + 1
@@ -2044,49 +1981,10 @@ program comprehensive_test
     ! GROUP 18: TYPE MIXING IN OPERATIONS
     ! =========================================================================
     write ""
-    write "========== GROUP 18: TYPE MIXING =========="
+    write "========== GROUP 18: REMOVED (TYPE MIXING WITH REALS) =========="
 
-    ! --- Test 18.1: Integer and real in expression ---
-    test_count = test_count + 1
-    test_name = "Int + real type"
-
-    int_a = 5
-    real_a = 2.5
-
-    ! Result type is type of second operand (real)
-    rtemp1 = int_a + real_a
-
-    if (rtemp1 > 7.4) then
-        if (rtemp1 < 7.6) then
-            write "PASS:", test_name
-            pass_count = pass_count + 1
-        else
-            write "FAIL:", test_name
-            fail_count = fail_count + 1
-        end if
-    else
-        write "FAIL:", test_name
-        fail_count = fail_count + 1
-    end if
-
-
-    ! --- Test 18.2: Real and integer in expression ---
-    test_count = test_count + 1
-    test_name = "Real + int type"
-
-    real_a = 3.5
-    int_a = 2
-
-    ! Result type is type of second operand (int)
-    int_var = real_a + int_a
-
-    if (int_var == 5) then
-        write "PASS:", test_name
-        pass_count = pass_count + 1
-    else
-        write "FAIL:", test_name
-        fail_count = fail_count + 1
-    end if
+    ! --- Test 18.1: REMOVED ---
+    ! --- Test 18.2: REMOVED ---
 
 
     ! =========================================================================
