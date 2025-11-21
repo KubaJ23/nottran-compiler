@@ -13,7 +13,7 @@ This project contains the files for TAM in the directory `triangle-abstract-mach
 ## Example Nottran programs
 
 - [Test suite program for testing all Nottran features](src/test/examples/test-suite.n25)
-- [Test suite program for testing more challenging features and combinations](src/test/examples/test-suite-advanced.n25)
+- [Test suite program for testing IO features and combinations](src/test/examples/test-suite-IO.n25)
 - [Matrix Multiplication program](src/test/examples/matrix-multiplication.n25)
 - [A workspace file for quick and easy testing](src/test/examples/sandbox.n25)
 
