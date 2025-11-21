@@ -134,7 +134,7 @@ void TamEmulator::PrimitiveAnd() {
 
 void TamEmulator::PrimitiveOr() {
     TamData op2 = this->PopData(), op1 = this->PopData();
-    this->PushData(op1 + op2 || op1 == -op2 ? 1 : 0);
+    this->PushData((op1 != 0 || op2 != 0) ? 1 : 0);
 }
 
 void TamEmulator::PrimitiveSucc() {
@@ -168,11 +168,19 @@ void TamEmulator::PrimitiveMult() {
 
 void TamEmulator::PrimitiveDiv() {
     TamData arg2 = this->PopData(), arg1 = this->PopData();
+    if (arg2 == 0) {
+        throw RuntimeError(ExceptionKind::kDivideByZero,
+                           this->registers_[CP] - 1);
+    }
     this->PushData(arg1 / arg2);
 }
 
 void TamEmulator::PrimitiveMod() {
     TamData arg2 = this->PopData(), arg1 = this->PopData();
+    if (arg2 == 0) {
+        throw RuntimeError(ExceptionKind::kDivideByZero,
+                           this->registers_[CP] - 1);
+    }
     this->PushData(arg1 % arg2);
 }
 

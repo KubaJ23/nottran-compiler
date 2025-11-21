@@ -22,13 +22,16 @@ jobs:
         continue-on-error: true
         name: Check age of commit
         run: |
-          [[ $(git rev-list --after="24 hours" ${{ github.sha }} | wc -l) -gt 0 ]]
-          if [[ $? -eq 0 ]]; then echo "has_changes=true" >> $GITHUB_OUTPUT; else echo "has_changes=false" >> $GITHUB_OUTPUT; fi
+          if [[ $(git rev-list --after="24 hours" ${{ github.sha }} | wc -l) -gt 0 ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else 
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
 
   build:
     name: Build on ${{ matrix.os }}
     needs: check_date
-    if: ${{ needs.check_date.outputs.has_changes != 'false' }}
+    if: ${{ needs.check_date.outputs.has_changes == 'true' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -37,16 +40,27 @@ jobs:
             c_compiler: clang
             cpp_compiler: clang++
             artifact_name: linux-build
-            artifact_path: build/src/tam
+            artifact_path: build/app/tam
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
             artifact_name: windows-build
-            artifact_path: build\src\Release\tam.exe
+            artifact_path: build\app\Release\tam.exe
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: CMake cache
+        uses: actions/cache@v4
+        env:
+          cache-name: cmake-build-cache
+        with:
+          path: ./build
+          key: ${{ env.cache-name }}-${{ matrix.os }}-${{ hashFiles('**/src/CMakeLists.txt', '**/test/CMakeLists.txt') }}
+          restore-keys: ${{ env.cache-name }}
 
       - name: Configure CMake
         run: >

@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Compile Nottran example" type="Application" factoryName="Application">
+  <configuration default="false" name="Compile matrix mult example" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-25" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="uk.ac.nott.cs.comp3012.coursework.Compiler" />

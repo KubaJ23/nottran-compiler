@@ -6,6 +6,10 @@ if(Doxygen_FOUND)
   set(DOXYGEN_HTML_COLORSTYLE "LIGHT")
   set(DOXYGEN_GENERATE_TREEVIEW Yes)
   set(DOXYGEN_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/docs)
-  doxygen_add_docs(docs ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
+
+  doxygen_add_docs(docs 
+    ${PROJECT_SOURCE_DIR}/app 
+    ${PROJECT_SOURCE_DIR}/src 
+    ${PROJECT_SOURCE_DIR}/include)
 endif()
 

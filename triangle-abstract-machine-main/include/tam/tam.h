@@ -18,8 +18,8 @@
 //
 /// @file tam.h
 /// This file declares the core of the TAM interface. It declares the
-/// `TamEmulator` class itself, along with the `TamInstruction` class used to
-/// pass instructions.
+/// `TamEmulator` class itself, along with the `TamInstruction` struct used to
+/// pass instructions and additional useful constants.
 //
 //===-----------------------------------------------------------------------===//
 
@@ -48,41 +48,47 @@ constexpr const int kMemSize = 65536;
 ///
 constexpr const int kMaxAddr = kMemSize - 1;
 
-/// Index of code top register
+/// TAM registers, also indexes into our registers array.
 ///
-constexpr const uint8_t CT = 1;
+enum TamRegister {
+    CB = 0,   // Code Base
+    CT = 1,   // Code Top
+    PB = 2,   // Primitives Base
+    PT = 3,   // Primitives Top
+    SB = 4,   // Stack Base
+    ST = 5,   // Stack Top
+    HB = 6,   // Heap Base
+    HT = 7,   // Heap Top
+    LB = 8,   // Local Base
+    L1 = 9,   // Local Base 1
+    L2 = 10,  // Local Base 2
+    L3 = 11,  // Local Base 3
+    L4 = 12,  // Local Base 4
+    L5 = 13,  // Local Base 5
+    L6 = 14,  // Local Base 6
+    CP = 15   // Code Pointer
+};
 
-/// Index of primitive base register
+/// TAM operations.
 ///
-constexpr const uint8_t PB = 2;
-
-/// Index of primitive top register
-///
-constexpr const uint8_t PT = 3;
-
-/// Index of stack base register
-///
-constexpr const uint8_t SB = 4;
-
-/// Index of stack top register
-///
-constexpr const uint8_t ST = 5;
-
-/// Index of heap base register
-///
-constexpr const uint8_t HB = 6;
-
-/// Index of heap top register
-///
-constexpr const uint8_t HT = 7;
-
-/// Index of local base register
-///
-constexpr const uint8_t LB = 8;
-
-/// Index of code pointer register
-///
-constexpr const uint8_t CP = 15;
+enum TamOpCode {
+    LOAD = 0,
+    LOADA = 1,
+    LOADI = 2,
+    LOADL = 3,
+    STORE = 4,
+    STOREI = 5,
+    CALL = 6,
+    CALLI = 7,
+    RETURN = 8,
+    // unused = 9,
+    PUSH = 10,
+    POP = 11,
+    JUMP = 12,
+    JUMPI = 13,
+    JUMPIF = 14,
+    HALT = 15
+};
 
 /// A single TAM instruction.
 ///
@@ -92,6 +98,73 @@ struct TamInstruction {
     uint8_t n;   ///< Unsigned operand
     int16_t d;   ///< Signed operand
 };
+
+// clang-format off
+
+/// List of TAM primitive routine names.
+///
+/// Index into this array corresponds to the offset `d` of the 
+/// instruction for that primitive.
+static const std::string primitive_names[] = {
+    "0", // invalid
+    "id",
+    "not", "and", "or",
+    "succ", "pred", "neg",
+    "add", "sub", "mult", "div", "mod",
+    "lt", "le",
+    "ge", "gt",
+    "eq", "ne",
+    "eol", "eof",
+    "get", "put",
+    "geteol", "puteol",
+    "getint", "putint",
+    "new", "dispose"
+};
+
+/// List of TAM OpCode names.
+///
+/// Index into this array corresponds to `instr.op`.
+static const std::string opcode_names[] = {
+    "LOAD",
+    "LOADA",
+    "LOADI",
+    "LOADL",
+    "STORE",
+    "STOREI",
+    "CALL",
+    "CALLI",
+    "RETURN",
+    "unused", // unused = 9
+    "PUSH",
+    "POP",
+    "JUMP",
+    "JUMPI",
+    "JUMPIF",
+    "HALT",
+};
+
+/// List of TAM register names.
+///
+/// Index into this array corresponds to `instr.r`.
+static const std::string register_names[] = {
+    "CB",
+    "CT",
+    "PB",
+    "PT",
+    "SB",
+    "ST",
+    "HB",
+    "HT",
+    "LB",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "CP"
+};
+// clang-format on
 
 /// A TAM emulator.
 ///
@@ -104,9 +177,9 @@ class TamEmulator {
     /// Construct a new emulator that uses `stdin` and `stdout` for I/O.
     ///
     /// On creation, all memory is zeroed and registers are set to default
-    /// values. Registers default to 0 except for `HB`` and `HT`, which default
+    /// values. Registers default to 0 except for `HB` and `HT`, which default
     /// to the highest address.
-    TamEmulator();
+    TamEmulator() : TamEmulator(stdin, stdout) {}
 
     /// Construct a new emulator that uses the specified file streams for I/O.
     ///
@@ -127,11 +200,10 @@ class TamEmulator {
 
     /// Sets the program to be run by this emulator.
     ///
-    /// Code words are copied into the code store, and CT, PB, and PT registers
-    /// are set accordingly.
+    /// This method also sets `CT`, `PB`, `PT` based on the size of the program.
     ///
     /// @param program program code to load
-    /// @throws std::runtime_exception if the provided program is too large to
+    /// @throws std::runtime_error if the provided program is too large to
     /// fit in memory
     void LoadProgram(const std::vector<TamCode>& program);
 
@@ -140,7 +212,7 @@ class TamEmulator {
     /// This method increments the code pointer as part of its operation.
     ///
     /// @return the instruction
-    /// @throws std::runtime_exception if the code pointer pointed outside of
+    /// @throws std::runtime_error if the code pointer pointed outside of
     /// allocated code memory
     TamInstruction FetchDecode();
 
@@ -148,7 +220,7 @@ class TamEmulator {
     ///
     /// @param instr instruction to execute
     /// @return `true` if execution should continue, `false` if not
-    /// @throws std::runtime_exception if any error occurred during execution
+    /// @throws std::runtime_error if any error occurred during execution
     bool Execute(TamInstruction instr);
 
     /// Return a string representing the current contents of the stack and any
@@ -162,28 +234,26 @@ class TamEmulator {
     ///
     /// @param n size of requested block
     /// @return address of first word in the block
+    /// @throws std::runtime_error if there was no room to allocate the memory
     TamAddr Allocate(int n);
 
-    /// Attempt to free the allocated block beginning at `Addr`.
+    /// Attempt to free the allocated block beginning at `addr`.
     ///
     /// @param addr start address of block
     /// @param size expected size of block
     void Free(TamAddr addr, TamData size);
 
-    /// Push a value to the top of the stack.
-    ///
-    /// This method updates the stack top register.
+    /// Push a value to the top of the stack and increment the `ST` register.
     ///
     /// @param value value to push
+    /// @throws std::runtime_error if the push would cause a stack overflow
     void PushData(TamData value);
 
-    /// Remove and return the top value of the stack.
-    ///
-    /// This method updates the stack top register, but does not actually delete
-    /// the value that was stored. It will remain until overwritten by a future
-    /// call.
+    /// Remove and return the top value of the stack and decrement the `ST`
+    /// register.
     ///
     /// @return the data
+    /// @throws std::runtime_error if the pop would cause a stack underflow
     TamData PopData();
 
     void ExecuteLoad(TamInstruction instr);
@@ -241,6 +311,17 @@ class TamEmulator {
     FILE *instream_,  ///< File that input is read from
         *outstream_;  ///< File that output is written to
 };
+
+/// Get Mnemonic of an instruction.
+///
+/// @param instr Instruction
+/// @return Mnemonic of Instruction
+std::string GetMnemonic(TamInstruction instr);
+
+/// Make it so that `uint8_t`s added to string streams
+/// are treated as integers and not characters.
+///
+inline std::ostream& operator<<(std::ostream& os, uint8_t v);
 
 }  // namespace tam
 

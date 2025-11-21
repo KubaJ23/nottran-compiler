@@ -18,7 +18,7 @@
 //
 /// @file cli.h
 /// This file defines the interface for parsing command-line arguments: the
-/// `CliArgs` class which contains the arguments, and the `parseCli` function
+/// `CliArgs` struct which contains the arguments, and the `ParseCli` function
 /// for parsing arguments from `argv`.
 //
 //===-----------------------------------------------------------------------===//
@@ -41,13 +41,16 @@ struct CliArgs {
 
 /// Parse the arguments given to the program.
 ///
-/// If calling with the values of `argc` and `argv` from main, the correct way
-/// to call the function is `ParseCli(argc - 1, argv + 1)` to skip the program
-/// name.
+/// Typical usage:
+/// ```cpp
+/// int main(int argc, const char **argv) {
+///     auto args = ParseCli(argc - 1, argv + 1);
+/// }
+/// ```
 ///
 /// @param argc number of arguments
 /// @param argv the arguments
-/// @return the parsed arguments, if parsing was successful
+/// @return the parsed arguments, or `nullptr` if parsing failed
 std::unique_ptr<CliArgs> ParseCli(int argc, const char** argv) noexcept;
 
 #endif  // TAM_CLI_H__

@@ -39,23 +39,28 @@
 #define COMBO_ARG(s) \
     ((strncmp(s, "-st", 3) == 0) || (strncmp(s, "-ts", 3) == 0))
 
-std::unique_ptr<CliArgs> ParseCli(int argc, const char **argv) noexcept {
-    enum class StackSymbol {
-        kNtCli,
-        kNtTrace,
-        kTokFilename,
-        kTokHelp,
-        kTokTrace,
-        kTokStep,
-        kTokCombo,
-    };
+/// Stack symbols used in the LL(1) parse in `ParseCli`.
+///
+enum class StackSymbol {
+    kNtCli,
+    kNtTrace,
+    kTokFilename,
+    kTokHelp,
+    kTokTrace,
+    kTokStep,
+    kTokCombo,
+};
+
+/// Parses the command line arguments using an embedded LL(1) parser.
+///
+std::unique_ptr<CliArgs> ParseCli(int argc, const char** argv) noexcept {
     std::stack<StackSymbol> stack;
     std::unique_ptr<CliArgs> args(new CliArgs);
     int i = 0;
 
     stack.push(StackSymbol::kNtCli);
     while (!stack.empty() && i < argc) {
-        const char *token = argv[i];
+        const char* token = argv[i];
         StackSymbol s = stack.top();
         stack.pop();
 

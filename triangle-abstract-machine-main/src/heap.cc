@@ -17,7 +17,7 @@
 //===-----------------------------------------------------------------------===//
 //
 /// @file heap.cc
-/// This file defines the `Allocate` and `free` methods of `TamEmulator`.
+/// This file defines the `Allocate` and `Free` methods of `TamEmulator`.
 //
 //===-----------------------------------------------------------------------===//
 

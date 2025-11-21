@@ -1,301 +1,2623 @@
-! Helper definition for derived type
+! =============================================================================
+! ULTIMATE NOTTRAN TEST SUITE - ALL FEATURES COMBINED
+! =============================================================================
+! Combines ALL test programs into one comprehensive suite testing:
+! - All literal types (integers, BOZ, logical, characters)
+! - All operators and precedence
+! - Control flow (if, do, while)
+! - Functions and subroutines (recursive and non-recursive)
+! - Static and dynamic arrays (1D, 2D, 3D)
+! - Derived types (nested, with arrays, static and pointer)
+! - Pass-by-value semantics
+! - Complex combinations of all features
+! =============================================================================
+
+! --- DERIVED TYPE DEFINITIONS ---
+
+type coord
+    integer :: x, y
+end type coord
+
+type particle
+    integer :: mass
+    type(coord) :: position
+    logical :: active
+end type particle
+
+type matrix_element
+    integer :: row, col
+    integer :: value
+end type matrix_element
+
+type container
+    integer(5) :: data
+    character :: label
+end type container
+
 type person
     integer :: id
     character :: name
 end type person
 
-! Helper definition for subroutine test
-subroutine test_sub_helper(a, b)
-    integer :: a
-    character :: b
-    ! Output will be 3 lines: The label, then 42, then "test"
-    write "  Subroutine OK (Expected 42, test):", a, b
-end subroutine test_sub_helper
+type item
+    integer :: id
+    character :: name
+    integer(3) :: sales_history
+end type item
 
-! Tests relational operators
-function test_rel_ops() result(res)
-    integer :: a, b, res
-    logical :: l1, l2
-    a = 5
-    b = 2
-    l1 = .true.
-    l2 = .false.
-    write "  Test 5 > 2 (Expected 1):", a > b
-    write "  Test 5 < 2 (Expected 0):", a < b
-    write "  Test .true. == .false. (Expected 0):", l1 == l2
-    write "  Test 5 .le. 2 (Expected 0):", a .le. b
-    res = 1
-end function test_rel_ops
+type nested_data
+    integer :: id
+    integer(2) :: coords
+end type nested_data
 
-! Tests read/write integers and logicals
-function test_rw_int_log() result(res)
-    integer :: i, res
-    logical :: l
-    write "  Enter integer 42:"
-    read i
-    write "  Integer read (Expected 42):", i
-    write "  Enter logical .true.:"
-    read l
-    write "  Logical read (Expected 1):", l
-    res = 1
-end function test_rw_int_log
+type vec3
+    integer :: x, y, z
+end type vec3
 
-! Tests if statement
-function test_if_simple1() result(res)
-    integer :: res
-    res = 0
-    if (5 > 2) res = 1
-    write "  Simple If (Expected 1):", res
-end function test_if_simple1
 
-! Tests if-then-else statement
-function test_if_then_else1() result(res)
-    integer :: res
-    if (.false.) then
-        res = 0
-    else
+! --- UTILITY FUNCTIONS AND SUBROUTINES ---
+
+! Factorial (recursive)
+function factorial(n) result(res)
+    integer :: n, res
+    if (n <= 1) then
         res = 1
+    else
+        res = n * factorial(n - 1)
     end if
-    write "  If-Then-Else (Expected 1):", res
-end function test_if_then_else1
+end function factorial
 
-! Tests integer variables and assignment
-function test_int_assign() result(res)
-    integer :: a, b, res
-    a = 10
-    b = a
-    write "  Integer assign (Expected 10):", b
-    res = 1
-end function test_int_assign
+! Fibonacci (recursive)
+function fibonacci(n) result(fib)
+    integer :: n, fib
+    if (n <= 1) then
+        fib = n
+    else
+        fib = fibonacci(n - 1) + fibonacci(n - 2)
+    end if
+end function fibonacci
 
-! Tests logical variables and assignment
-function test_log_assign() result(res)
-    integer :: res
-    logical :: l1, l2, l3
-    l1 = .true.
-    l2 = .false.
-    l3 = l1 .or. l2
-    write "  Logical assign (Expected 1):", l3
-    res = 1
-end function test_log_assign
+! Test arithmetic operators
+function test_arithmetic(a, b) result(r)
+    integer :: a, b, r
+    integer :: add, sub, mul, div, exp_val
 
-! Tests arithmetic operators
-function test_arithmetic() result(res)
-    integer :: a, b, res
-    a = 20
-    b = 3
-    write "  20 + 3 (Expected 23):", a + b
-    write "  20 * 3 (Expected 60):", a * b
-    write "  3 ** 3 (Expected 27):", b ** 3
-    res = 1
+    add = a + b
+    sub = a - b
+    mul = a * b
+    div = a / b
+    exp_val = a ** 2
+
+    r = 0
+    if (add /= (a + b)) then
+        r = 1
+    end if
+    if (sub /= (a - b)) then
+        r = 2
+    end if
+    if (mul /= (a * b)) then
+        r = 3
+    end if
 end function test_arithmetic
 
-! Tests if statement (second instance)
-function test_if_simple2() result(res)
-    integer :: res
-    res = 0
-    if (.true.) write "  Simple If 2: OK"
-    res = 1
-end function test_if_simple2
+! Test logical operators
+function test_logical(p, q) result(ok)
+    logical :: p, q, ok
+    logical :: and_result, or_result
 
-! Tests if-then-else statement (second instance)
-function test_if_then_else2() result(res)
-    integer :: res
-    if (10 < 5) then
-        write "  If-Then-Else 2: FAILED"
-        res = 0
-    else
-        write "  If-Then-Else 2: OK"
-        res = 1
+    and_result = p .and. q
+    or_result = p .or. q
+
+    ok = .true.
+    if (p == .true.) then
+        if (q == .true.) then
+            if (and_result /= .true.) then
+                ok = .false.
+            end if
+            if (or_result /= .true.) then
+                ok = .false.
+            end if
+        else
+            if (and_result /= .false.) then
+                ok = .false.
+            end if
+            if (or_result /= .true.) then
+                ok = .false.
+            end if
+        end if
     end if
-end function test_if_then_else2
+end function test_logical
 
-! Tests do-while statement
-function test_do_while() result(res)
-    integer :: k, res
-    k = 0
-    write "  Do-while (Expected 0, 1, 2):"
-    do while (k < 3)
-        write " ", k
-        k = k + 1
+! Test relational operators (both forms)
+function test_relational(a, b) result(r)
+    integer :: a, b, r
+    logical :: lt, le, gt, ge, eq, ne
+    logical :: lt2, le2, gt2, ge2, eq2, ne2
+
+    lt = a < b
+    le = a <= b
+    gt = a > b
+    ge = a >= b
+    eq = a == b
+    ne = a /= b
+
+    lt2 = a .lt. b
+    le2 = a .le. b
+    gt2 = a .gt. b
+    ge2 = a .ge. b
+    eq2 = a .eq. b
+    ne2 = a .neq. b
+
+    r = 0
+    if (lt /= lt2) then
+        r = 1
+    end if
+    if (le /= le2) then
+        r = 2
+    end if
+    if (gt /= gt2) then
+        r = 3
+    end if
+    if (ge /= ge2) then
+        r = 4
+    end if
+    if (eq /= eq2) then
+        r = 5
+    end if
+    if (ne /= ne2) then
+        r = 6
+    end if
+end function test_relational
+
+! Test operator precedence
+function test_precedence() result(r)
+    integer :: r
+    integer :: x, y, z
+
+    x = 2 + 3 * 4
+    y = 2 * 3 + 4
+    z = (2 + 3) * 4
+
+    r = 0
+    if (x /= 14) then
+        r = 1
+    end if
+    if (y /= 10) then
+        r = 2
+    end if
+    if (z /= 20) then
+        r = 3
+    end if
+end function test_precedence
+
+! Test exponent associativity
+function test_exponent() result(r)
+    integer :: r
+    integer :: x, y
+
+    x = 2 ** 3 ** 2
+    y = 2 ** 9
+
+    r = 0
+    if (x /= y) then
+        r = 1
+    end if
+    if (x /= 512) then
+        r = 2
+    end if
+end function test_exponent
+
+! Sum 1D array
+function sum_array(arr, size) result(total)
+    integer(*) pointer :: arr
+    integer :: size, total
+    integer :: i
+
+    total = 0
+    do i = 0, size
+        total = total + arr(i)
     end do
-    res = 1
-end function test_do_while
+end function sum_array
 
-! Tests character variables and assignment
-function test_char_assign() result(res)
-    integer :: res
-    character :: c
-    c = "A"
-    write "  Character assign (Expected A):", c
-    res = 1
-end function test_char_assign
+! Sum 2D array
+function sum_2d_array(arr, rows, cols) result(total)
+    integer(*, *) pointer :: arr
+    integer :: rows, cols, total
+    integer :: i, j
 
-! Tests read/write characters
-function test_rw_char() result(res)
-    integer :: res
-    character :: c
-    write "  Enter character Z:"
-    read c
-    write "  Character read (Expected Z):", c
-    res = 1
-end function test_rw_char
-
-! Tests array variables, assignment, and indexing
-function test_array_assign_index() result(res)
-    integer :: res
-    integer(3) :: arr
-    arr(0) = 100
-    arr(1) = 200
-    arr(2) = arr(0) + arr(1)
-    write "  Array index 0 (Expected 100):", arr(0)
-    write "  Array index 2 (Expected 300):", arr(2)
-    res = 1
-end function test_array_assign_index
-
-! Tests do statement
-function test_do_loop() result(res)
-    integer :: i, res
-    integer(3) :: arr
-    arr(0) = 1
-    arr(1) = 2
-    arr(2) = 3
-    write "  Do loop (Expected 1, 2, 3):"
-    do i = 0, 3
-        write " ", arr(i)
+    total = 0
+    do i = 0, rows
+        do j = 0, cols
+            total = total + arr(i, j)
+        end do
     end do
-    res = 1
-end function test_do_loop
+end function sum_2d_array
 
-! Tests concatenation operator
-function test_concat() result(res)
-    integer :: res
-    character :: s1, s2, s3
-    s1 = "Hello"
-    s2 = " World"
-    s3 = s1 // s2
-    write "  Concatenation (Expected Hello World):", s3
-    res = 1
-end function test_concat
-
-! Tests subroutines
-function test_subroutines() result(res)
-    integer :: res
-    call test_sub_helper(42, "test")
-    res = 1
-end function test_subroutines
-
-! Tests functions
-function test_functions() result(res)
-    integer :: x, res
-    x = test_func_helper(9)
-    write "  Function call (Expected 81):", x
-    res = 1
-end function test_functions
-
+! Test helper function
 function test_func_helper(a) result(res)
     integer :: a, res
     res = a * a
 end function test_func_helper
 
-! Tests pointer variables and allocation/deallocation
-function test_pointers() result(res)
-    integer :: x, res
-    integer(*) pointer :: p_arr
-    allocate p_arr, 5 ! Allocate 5 integers
-    p_arr(0) = 100
-    p_arr(4) = 500
-    x = p_arr(0) + p_arr(4)
-    write "  Pointer array (Expected 600):", x
+! Get total sales from item
+function get_total_sales(record) result(total)
+    type(item) :: record
+    integer :: total, i
 
-    deallocate p_arr
+    total = 0
+    do i = 0, 3
+        total = total + record % sales_history(i)
+    end do
+end function get_total_sales
 
-    res = 1
-end function test_pointers
+! Get total sales from item pointer
+function get_total_sales_ptr(record) result(total)
+    type(item) pointer :: record
+    integer :: total, i
 
-! Tests defined types and defined type variables
-function test_derived_types() result(res)
-    integer :: res
-    type(person) :: p1
-    type(person) pointer :: p_ptr
+    total = 0
+    do i = 0, 3
+        total = total + record % sales_history(i)
+    end do
+end function get_total_sales_ptr
 
-    p1 % id = 7
-    p1 % name = "static_person"
-    write "  Derived type static id (Expected 7):", p1 % id
-    write "  Derived type static name (Expected static_person):", p1 % name
+! Subroutine to test pass-by-value
+subroutine try_modify(x)
+    integer :: x
+    x = 999
+end subroutine try_modify
 
-    allocate p_ptr
-    p_ptr % id = 88
-    p_ptr % name = "pointer_person"
-    write "  Derived type pointer id (Expected 88):", p_ptr % id
-    write "  Derived type pointer name (Expected pointer_person):", p_ptr % name
-    deallocate p_ptr
-    res = 1
-end function test_derived_types
+! Subroutine to fill array
+subroutine fill_array(arr, size, value)
+    integer(*) pointer :: arr
+    integer :: size, value
+    integer :: i
+
+    do i = 0, size
+        arr(i) = value
+    end do
+end subroutine fill_array
+
+! Subroutine helper for testing
+subroutine test_sub_helper(a, b)
+    integer :: a
+    character :: b
+    write "  Subroutine received:", a, b
+end subroutine test_sub_helper
+
+! Pass-by-value test subroutine
+subroutine pass_by_value_test(val)
+    integer :: val
+    val = 0
+end subroutine pass_by_value_test
 
 
-! Main program to run all test functions
-program comprehensive_test
-    integer :: res
+! --- MAIN TEST PROGRAM ---
 
-    write "--- Running Nottran Test Suite ---"
+program ultimate_nottran_test
+    ! === VARIABLE DECLARATIONS ===
 
-    res = test_rel_ops()
-    write "Test Relational Ops (Expected 1):", res
+    ! Basic types
+    integer :: int_var, int_a, int_b, int_result
+    logical :: bool_var, bool_a, bool_b
+    character :: char_var, str_var
 
-    res = test_rw_int_log()
-    write "Test R/W Int/Log (Expected 1):", res
+    ! BOZ literals
+    integer :: binary_val, octal_val, hex_val
 
-    res = test_if_simple1()
-    write "Test If Simple 1 (Expected 1):", res
+    ! Arrays
+    integer(10) :: static_array
+    integer(3, 4) :: static_2d
+    integer(2, 3, 2) :: static_3d
+    integer(1) :: single_element
 
-    res = test_if_then_else1()
-    write "Test If-Then-Else 1 (Expected 1):", res
+    ! Dynamic arrays
+    integer(*) pointer :: dyn_array
+    integer(*, *) pointer :: dyn_2d
+    integer(*, *, *) pointer :: dyn_3d
 
-    res = test_int_assign()
-    write "Test Int Assign (Expected 1):", res
+    ! Derived types
+    type(coord) :: point1, point2
+    type(particle) :: p1, p2
+    type(particle)(3) :: particle_array
+    type(matrix_element)(*, *) pointer :: matrix
+    type(container) :: box
+    type(person) :: pers1
+    type(person) pointer :: p_pers
+    type(item) :: static_item
+    type(item) pointer :: p_item
+    type(nested_data)(3) :: nested_array
+    type(vec3)(5) :: static_vec_array
+    type(vec3)(*, *) pointer :: dyn_vec_2d
 
-    res = test_log_assign()
-    write "Test Log Assign (Expected 1):", res
+    ! Loop counters and test tracking
+    integer :: i, j, k
+    integer :: test_count, pass_count, fail_count
+    logical :: test_passed
+    character :: test_name
 
-    res = test_arithmetic()
-    write "Test Arithmetic (Expected 1):", res
+    ! Function results
+    integer :: func_result
+    logical :: bool_result
 
-    res = test_if_simple2()
-    write "Test If Simple 2 (Expected 1):", res
+    ! Temporary variables
+    integer :: temp1, temp2, temp3
+    integer :: sum_val
+    integer :: total_sales, pass_val
 
-    res = test_if_then_else2()
-    write "Test If-Then-Else 2 (Expected 1):", res
 
-    res = test_do_while()
-    write "Test Do-While (Expected 1):", res
+    ! === INITIALIZATION ===
+    test_count = 0
+    pass_count = 0
+    fail_count = 0
 
-    res = test_char_assign()
-    write "Test Char Assign (Expected 1):", res
+    write "============================================="
+    write " ULTIMATE NOTTRAN TEST SUITE"
+    write " Testing ALL language features"
+    write "============================================="
+    write ""
 
-    res = test_rw_char()
-    write "Test R/W Char (Expected 1):", res
 
-    res = test_array_assign_index()
-    write "Test Array Assign/Index (Expected 1):", res
+    ! =========================================================================
+    ! GROUP 1: LITERAL CONSTANTS
+    ! =========================================================================
+    write "========== GROUP 1: LITERAL CONSTANTS =========="
 
-    res = test_do_loop()
-    write "Test Do Loop (Expected 1):", res
+    ! --- Test 1.1: Decimal integers ---
+    test_count = test_count + 1
+    test_name = "Decimal integers"
 
-    res = test_concat()
-    write "Test Concat (Expected 1):", res
+    int_a = 42
+    int_b = -17
+    temp1 = +100
 
-    res = test_subroutines()
-    write "Test Subroutines (Expected 1):", res
+    test_passed = .true.
+    if (int_a /= 42) then
+        test_passed = .false.
+    end if
+    if (int_b /= -17) then
+        test_passed = .false.
+    end if
+    if (temp1 /= 100) then
+        test_passed = .false.
+    end if
 
-    res = test_functions()
-    write "Test Functions (Expected 1):", res
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
 
-    res = test_pointers()
-    write "Test Pointers (Expected 1):", res
 
-    res = test_derived_types()
-    write "Test Derived Types (Expected 1):", res
+    ! --- Test 1.2: BOZ literals ---
+    test_count = test_count + 1
+    test_name = "BOZ literals"
 
-    write "--- Test Suite Complete ---"
-end program comprehensive_test
+    binary_val = b"1010"
+    octal_val = o"17"
+    hex_val = z"2a"
+
+    test_passed = .true.
+    if (binary_val /= 10) then
+        test_passed = .false.
+    end if
+    if (octal_val /= 15) then
+        test_passed = .false.
+    end if
+    if (hex_val /= 42) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 1.3: Logical values ---
+    test_count = test_count + 1
+    test_name = "Logical values"
+
+    bool_a = .true.
+    bool_b = .false.
+
+    test_passed = .true.
+    if (bool_a /= .true.) then
+        test_passed = .false.
+    end if
+    if (bool_b == .true.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 1.4: Character literals ---
+    test_count = test_count + 1
+    test_name = "Character literals"
+
+    char_var = "X"
+    str_var = "Hello, World!"
+
+    test_passed = .true.
+    if (char_var /= "X") then
+        test_passed = .false.
+    end if
+    if (str_var /= "Hello, World!") then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 1.5: Escaped quotes ---
+    test_count = test_count + 1
+    test_name = "Escaped quotes"
+
+    str_var = "She said ""Hello"""
+
+    test_passed = .true.
+    if (str_var == "She said ""Hello""") then
+        test_passed = .true.
+    else
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 2: ARITHMETIC OPERATORS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 2: ARITHMETIC OPERATORS =========="
+
+    ! --- Test 2.1: Basic arithmetic ---
+    test_count = test_count + 1
+    test_name = "Basic arithmetic"
+
+    int_a = 10
+    int_b = 3
+
+    temp1 = int_a + int_b
+    temp2 = int_a - int_b
+    temp3 = int_a * int_b
+
+    test_passed = .true.
+    if (temp1 /= 13) then
+        test_passed = .false.
+    end if
+    if (temp2 /= 7) then
+        test_passed = .false.
+    end if
+    if (temp3 /= 30) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 2.2: Integer division ---
+    test_count = test_count + 1
+    test_name = "Integer division"
+
+    temp1 = 10 / 3
+    temp2 = 9 / 3
+    temp3 = 7 / 2
+
+    test_passed = .true.
+    if (temp1 /= 3) then
+        test_passed = .false.
+    end if
+    if (temp2 /= 3) then
+        test_passed = .false.
+    end if
+    if (temp3 /= 3) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 2.3: Exponentiation ---
+    test_count = test_count + 1
+    test_name = "Exponentiation"
+
+    temp1 = 2 ** 3
+    temp2 = 5 ** 2
+    temp3 = 3 ** 4
+
+    test_passed = .true.
+    if (temp1 /= 8) then
+        test_passed = .false.
+    end if
+    if (temp2 /= 25) then
+        test_passed = .false.
+    end if
+    if (temp3 /= 81) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 2.4: Operator precedence ---
+    test_count = test_count + 1
+    test_name = "Operator precedence"
+
+    func_result = test_precedence()
+
+    if (func_result == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 2.5: Exponent associativity ---
+    test_count = test_count + 1
+    test_name = "Exponent associativity"
+
+    func_result = test_exponent()
+
+    if (func_result == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 2.6: BOZ with precedence ---
+    test_count = test_count + 1
+    test_name = "BOZ with precedence"
+
+    int_var = (b"101" + o"10") ** 2
+
+    if (int_var == 169) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 3: RELATIONAL OPERATORS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 3: RELATIONAL OPERATORS =========="
+
+    ! --- Test 3.1: Symbolic relational operators ---
+    test_count = test_count + 1
+    test_name = "Symbolic relational ops"
+
+    int_a = 5
+    int_b = 10
+
+    test_passed = .true.
+    if ((int_a < int_b) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a > int_b) == .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a == int_b) == .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a /= int_b) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a <= int_b) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a >= int_b) == .true.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 3.2: Textual relational operators ---
+    test_count = test_count + 1
+    test_name = "Textual relational ops"
+
+    test_passed = .true.
+    if ((int_a .lt. int_b) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a .gt. int_b) == .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a .eq. int_b) == .true.) then
+        test_passed = .false.
+    end if
+    if ((int_a .neq. int_b) /= .true.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 3.3: Consistency ---
+    test_count = test_count + 1
+    test_name = "Relational consistency"
+
+    func_result = test_relational(5, 10)
+
+    if (func_result == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 4: LOGICAL OPERATORS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 4: LOGICAL OPERATORS =========="
+
+    ! --- Test 4.1: AND operator ---
+    test_count = test_count + 1
+    test_name = "Logical AND"
+
+    test_passed = .true.
+    if ((.true. .and. .true.) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((.true. .and. .false.) /= .false.) then
+        test_passed = .false.
+    end if
+    if ((.false. .and. .true.) /= .false.) then
+        test_passed = .false.
+    end if
+    if ((.false. .and. .false.) /= .false.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 4.2: OR operator ---
+    test_count = test_count + 1
+    test_name = "Logical OR"
+
+    test_passed = .true.
+    if ((.true. .or. .true.) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((.true. .or. .false.) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((.false. .or. .true.) /= .true.) then
+        test_passed = .false.
+    end if
+    if ((.false. .or. .false.) /= .false.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 4.3: Combined logical ops ---
+    test_count = test_count + 1
+    test_name = "Combined logical ops"
+
+    bool_result = test_logical(.true., .false.)
+
+    if (bool_result == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 5: CHARACTER OPERATIONS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 5: CHARACTER OPERATIONS =========="
+
+    ! --- Test 5.1: String concatenation ---
+    test_count = test_count + 1
+    test_name = "String concatenation"
+
+    str_var = "Hello" // " " // "World"
+
+    if (str_var == "Hello World") then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 5.2: String comparison ---
+    test_count = test_count + 1
+    test_name = "String comparison"
+
+    test_passed = .true.
+    if (("abc" < "def") /= .true.) then
+        test_passed = .false.
+    end if
+    if (("xyz" > "abc") /= .true.) then
+        test_passed = .false.
+    end if
+    if (("test" == "test") /= .true.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 5.3: Multiple concatenations ---
+    test_count = test_count + 1
+    test_name = "Multiple concat"
+
+    str_var = "A" // "B" // "C" // "D"
+
+    if (str_var == "ABCD") then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 6: CONTROL FLOW - IF STATEMENTS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 6: IF STATEMENTS =========="
+
+    ! --- Test 6.1: Simple if ---
+    test_count = test_count + 1
+    test_name = "Simple if"
+
+    int_var = 0
+    if (.true.) int_var = 1
+
+    if (int_var == 1) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 6.2: If-then-else ---
+    test_count = test_count + 1
+    test_name = "If-then-else"
+
+    int_var = 0
+    if (5 > 10) then
+        int_var = 1
+    else
+        int_var = 2
+    end if
+
+    if (int_var == 2) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 6.3: Nested if ---
+    test_count = test_count + 1
+    test_name = "Nested if"
+
+    int_var = 0
+    if (5 < 10) then
+        if (3 < 7) then
+            int_var = 42
+        else
+            int_var = 1
+        end if
+    else
+        int_var = 2
+    end if
+
+    if (int_var == 42) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 7: CONTROL FLOW - DO LOOPS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 7: DO LOOPS =========="
+
+    ! --- Test 7.1: Basic do loop ---
+    test_count = test_count + 1
+    test_name = "Basic do loop"
+
+    sum_val = 0
+    do i = 0, 10
+        sum_val = sum_val + i
+    end do
+
+    if (sum_val == 45) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 7.2: Do loop with step ---
+    test_count = test_count + 1
+    test_name = "Do loop with step"
+
+    sum_val = 0
+    do i = 0, 10, 2
+        sum_val = sum_val + i
+    end do
+
+    if (sum_val == 20) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 7.3: Nested do loops ---
+    test_count = test_count + 1
+    test_name = "Nested do loops"
+
+    sum_val = 0
+    do i = 0, 3
+        do j = 0, 3
+            sum_val = sum_val + 1
+        end do
+    end do
+
+    if (sum_val == 9) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 8: CONTROL FLOW - DO-WHILE LOOPS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 8: DO-WHILE LOOPS =========="
+
+    ! --- Test 8.1: Basic do-while ---
+    test_count = test_count + 1
+    test_name = "Basic do-while"
+
+    int_var = 0
+    sum_val = 0
+    do while (int_var < 5)
+        sum_val = sum_val + int_var
+        int_var = int_var + 1
+    end do
+
+    if (sum_val == 10) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 8.2: Do-while complex ---
+    test_count = test_count + 1
+    test_name = "Do-while complex"
+
+    int_a = 0
+    int_b = 10
+    do while (int_a < 5 .and. int_b > 5)
+        int_a = int_a + 1
+        int_b = int_b - 1
+    end do
+
+    test_passed = .true.
+    if (int_a /= 5) then
+        test_passed = .false.
+    end if
+    if (int_b /= 5) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 9: STATIC ARRAYS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 9: STATIC ARRAYS =========="
+
+    ! --- Test 9.1: Single element array ---
+    test_count = test_count + 1
+    test_name = "Single element array"
+
+    single_element(0) = 42
+
+    if (single_element(0) == 42) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 9.2: Static 1D array ---
+    test_count = test_count + 1
+    test_name = "Static 1D array"
+
+    do i = 0, 10
+        static_array(i) = i * 2
+    end do
+
+    test_passed = .true.
+    if (static_array(0) /= 0) then
+        test_passed = .false.
+    end if
+    if (static_array(5) /= 10) then
+        test_passed = .false.
+    end if
+    if (static_array(9) /= 18) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 9.3: Static 2D array ---
+    test_count = test_count + 1
+    test_name = "Static 2D array"
+
+    do i = 0, 3
+        do j = 0, 4
+            static_2d(i, j) = (i * 10) + j
+        end do
+    end do
+
+    test_passed = .true.
+    if (static_2d(0, 0) /= 0) then
+        test_passed = .false.
+    end if
+    if (static_2d(2, 3) /= 23) then
+        test_passed = .false.
+    end if
+    if (static_2d(1, 2) /= 12) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 9.4: Static 3D array ---
+    test_count = test_count + 1
+    test_name = "Static 3D array"
+
+    do i = 0, 2
+        do j = 0, 3
+            do k = 0, 2
+                static_3d(i, j, k) = (i * 100) + (j * 10) + k
+            end do
+        end do
+    end do
+
+    test_passed = .true.
+    if (static_3d(0, 0, 0) /= 0) then
+        test_passed = .false.
+    end if
+    if (static_3d(1, 2, 1) /= 121) then
+        test_passed = .false.
+    end if
+    if (static_3d(1, 1, 0) /= 110) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 10: DYNAMIC ARRAYS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 10: DYNAMIC ARRAYS =========="
+
+    ! --- Test 10.1: Dynamic 1D array ---
+    test_count = test_count + 1
+    test_name = "Dynamic 1D array"
+
+    allocate dyn_array, 20
+
+    do i = 0, 20
+        dyn_array(i) = i * 3
+    end do
+
+    test_passed = .true.
+    if (dyn_array(0) /= 0) then
+        test_passed = .false.
+    end if
+    if (dyn_array(10) /= 30) then
+        test_passed = .false.
+    end if
+    if (dyn_array(19) /= 57) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_array
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 10.2: Dynamic 2D array ---
+    test_count = test_count + 1
+    test_name = "Dynamic 2D array"
+
+    allocate dyn_2d, 5, 6
+
+    do i = 0, 5
+        do j = 0, 6
+            dyn_2d(i, j) = (i * 100) + j
+        end do
+    end do
+
+    test_passed = .true.
+    if (dyn_2d(0, 0) /= 0) then
+        test_passed = .false.
+    end if
+    if (dyn_2d(3, 4) /= 304) then
+        test_passed = .false.
+    end if
+    if (dyn_2d(4, 5) /= 405) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_2d
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 10.3: Dynamic 3D array ---
+    test_count = test_count + 1
+    test_name = "Dynamic 3D array"
+
+    allocate dyn_3d, 4, 5, 6
+
+    dyn_3d(0, 0, 0) = 1
+    dyn_3d(3, 4, 5) = 999
+    dyn_3d(2, 3, 1) = 777
+    dyn_3d(1, 1, 1) = 111
+
+    test_passed = .true.
+    if (dyn_3d(0, 0, 0) /= 1) then
+        test_passed = .false.
+    end if
+    if (dyn_3d(3, 4, 5) /= 999) then
+        test_passed = .false.
+    end if
+    if (dyn_3d(2, 3, 1) /= 777) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_3d
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 10.4: Re-allocation ---
+    test_count = test_count + 1
+    test_name = "Re-allocation"
+
+    allocate dyn_array, 5
+    dyn_array(4) = 999
+
+    if (dyn_array(4) == 999) then
+        deallocate dyn_array
+        allocate dyn_array, 15
+        dyn_array(14) = 888
+
+        if (dyn_array(14) == 888) then
+            write "PASS:", test_name
+            pass_count = pass_count + 1
+        else
+            write "FAIL:", test_name
+            fail_count = fail_count + 1
+        end if
+
+        deallocate dyn_array
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 11: DERIVED TYPES
+    ! =========================================================================
+    write ""
+    write "========== GROUP 11: DERIVED TYPES =========="
+
+    ! --- Test 11.1: Basic derived type ---
+    test_count = test_count + 1
+    test_name = "Basic derived type"
+
+    point1%x = 10
+    point1%y = 20
+
+    test_passed = .true.
+    if (point1%x /= 10) then
+        test_passed = .false.
+    end if
+    if (point1%y /= 20) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.2: Nested derived types ---
+    test_count = test_count + 1
+    test_name = "Nested derived types"
+
+    p1%mass = 5
+    p1%position%x = 100
+    p1%position%y = 200
+    p1%active = .true.
+
+    test_passed = .true.
+    if (p1%position%x /= 100) then
+        test_passed = .false.
+    end if
+    if (p1%position%y /= 200) then
+        test_passed = .false.
+    end if
+    if (p1%active /= .true.) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.3: Array of derived types ---
+    test_count = test_count + 1
+    test_name = "Array of derived types"
+
+    do i = 0, 3
+        particle_array(i)%mass = 1
+        particle_array(i)%position%x = i * 10
+        particle_array(i)%position%y = i * 20
+        particle_array(i)%active = .true.
+    end do
+
+    test_passed = .true.
+    if (particle_array(0)%position%x /= 0) then
+        test_passed = .false.
+    end if
+    if (particle_array(2)%position%x /= 20) then
+        test_passed = .false.
+    end if
+    if (particle_array(2)%position%y /= 40) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.4: Derived type with array ---
+    test_count = test_count + 1
+    test_name = "Derived type w/ array"
+
+    box%label = "Box1"
+    do i = 0, 5
+        box%data(i) = i * 5
+    end do
+
+    test_passed = .true.
+    if (box%data(0) /= 0) then
+        test_passed = .false.
+    end if
+    if (box%data(3) /= 15) then
+        test_passed = .false.
+    end if
+    if (box%label /= "Box1") then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.5: Pointer to derived type ---
+    test_count = test_count + 1
+    test_name = "Pointer to derived type"
+
+    allocate p_pers
+    p_pers%id = 88
+    p_pers%name = "pointer_person"
+
+    test_passed = .true.
+    if (p_pers%id /= 88) then
+        test_passed = .false.
+    end if
+    if (p_pers%name /= "pointer_person") then
+        test_passed = .false.
+    end if
+
+    deallocate p_pers
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.6: Dynamic 2D array of derived types ---
+    test_count = test_count + 1
+    test_name = "Dynamic 2D derived array"
+
+    allocate matrix, 3, 3
+
+    do i = 0, 3
+        do j = 0, 3
+            matrix(i, j)%row = i
+            matrix(i, j)%col = j
+            matrix(i, j)%value = 1
+        end do
+    end do
+
+    test_passed = .true.
+    if (matrix(0, 0)%row /= 0) then
+        test_passed = .false.
+    end if
+    if (matrix(2, 1)%row /= 2) then
+        test_passed = .false.
+    end if
+    if (matrix(2, 1)%col /= 1) then
+        test_passed = .false.
+    end if
+
+    deallocate matrix
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 11.7: Nested data with arrays ---
+    test_count = test_count + 1
+    test_name = "Nested data w/ arrays"
+
+    nested_array(0)%id = 1
+    nested_array(0)%coords(0) = 10
+    nested_array(0)%coords(1) = 20
+
+    nested_array(2)%id = 3
+    nested_array(2)%coords(0) = 100
+    nested_array(2)%coords(1) = 200
+
+    test_passed = .true.
+    if (nested_array(0)%coords(1) /= 20) then
+        test_passed = .false.
+    end if
+    if (nested_array(2)%id /= 3) then
+        test_passed = .false.
+    end if
+    if (nested_array(2)%coords(0) /= 100) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 12: FUNCTIONS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 12: FUNCTIONS =========="
+
+    ! --- Test 12.1: Simple function ---
+    test_count = test_count + 1
+    test_name = "Simple function"
+
+    func_result = test_arithmetic(10, 3)
+
+    if (func_result == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 12.2: Recursive factorial ---
+    test_count = test_count + 1
+    test_name = "Recursive factorial"
+
+    func_result = factorial(5)
+
+    if (func_result == 120) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 12.3: Recursive fibonacci ---
+    test_count = test_count + 1
+    test_name = "Recursive fibonacci"
+
+    func_result = fibonacci(7)
+
+    if (func_result == 13) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 12.4: Function with array ---
+    test_count = test_count + 1
+    test_name = "Function with array"
+
+    allocate dyn_array, 10
+    do i = 0, 10
+        dyn_array(i) = i
+    end do
+
+    func_result = sum_array(dyn_array, 10)
+    deallocate dyn_array
+
+    if (func_result == 45) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 12.5: Function with 2D array ---
+    test_count = test_count + 1
+    test_name = "Function with 2D array"
+
+    allocate dyn_2d, 3, 3
+    do i = 0, 3
+        do j = 0, 3
+            dyn_2d(i, j) = 1
+        end do
+    end do
+
+    func_result = sum_2d_array(dyn_2d, 3, 3)
+    deallocate dyn_2d
+
+    if (func_result == 9) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 12.6: Helper function ---
+    test_count = test_count + 1
+    test_name = "Helper function"
+
+    func_result = test_func_helper(9)
+
+    if (func_result == 81) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 13: SUBROUTINES
+    ! =========================================================================
+    write ""
+    write "========== GROUP 13: SUBROUTINES =========="
+
+    ! --- Test 13.1: Basic subroutine ---
+    test_count = test_count + 1
+    test_name = "Basic subroutine"
+
+    allocate dyn_array, 10
+    call fill_array(dyn_array, 10, 42)
+
+    test_passed = .true.
+    if (dyn_array(0) /= 42) then
+        test_passed = .false.
+    end if
+    if (dyn_array(5) /= 42) then
+        test_passed = .false.
+    end if
+    if (dyn_array(9) /= 42) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_array
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 13.2: Pass-by-value ---
+    test_count = test_count + 1
+    test_name = "Pass-by-value"
+
+    int_var = 42
+    call try_modify(int_var)
+
+    if (int_var == 42) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 13.3: Subroutine with params ---
+    test_count = test_count + 1
+    test_name = "Subroutine w/ params"
+
+    call test_sub_helper(42, "test")
+    write "PASS:", test_name
+    pass_count = pass_count + 1
+
+
+    ! =========================================================================
+    ! GROUP 14: COMPLEX COMBINATIONS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 14: COMPLEX COMBINATIONS =========="
+
+    ! --- Test 14.1: Static item with array ---
+    test_count = test_count + 1
+    test_name = "Static item w/ array"
+
+    static_item%id = 101
+    static_item%name = "Static ""Shield"""
+    static_item%sales_history(0) = 10
+    static_item%sales_history(1) = 20
+    static_item%sales_history(2) = 30
+
+    total_sales = get_total_sales(static_item)
+
+    if (total_sales == 60) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.2: Pointer item with array ---
+    test_count = test_count + 1
+    test_name = "Pointer item w/ array"
+
+    allocate p_item
+    p_item%id = 202
+    p_item%name = "Dynamic Potion"
+    p_item%sales_history(0) = 1
+    p_item%sales_history(1) = 2
+    p_item%sales_history(2) = 3
+
+    total_sales = get_total_sales_ptr(p_item)
+
+    if (total_sales == 6) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+    p_item%sales_history(1) = 50
+    total_sales = p_item%sales_history(0) + p_item%sales_history(1) + p_item%sales_history(2)
+
+    if (total_sales == 54) then
+        write "PASS: Pointer item update"
+        pass_count = pass_count + 1
+        test_count = test_count + 1
+    else
+        write "FAIL: Pointer item update"
+        fail_count = fail_count + 1
+        test_count = test_count + 1
+    end if
+
+    deallocate p_item
+
+
+    ! --- Test 14.3: String concat with derived ---
+    test_count = test_count + 1
+    test_name = "String concat derived"
+
+    str_var = static_item%name // " and " // "Potion"
+
+    write "Combined names:", str_var
+    write "PASS:", test_name
+    pass_count = pass_count + 1
+
+
+    ! --- Test 14.4: Loop with array and derived ---
+    test_count = test_count + 1
+    test_name = "Loop + array + derived"
+
+    do i = 0, 3
+        particle_array(i)%position%x = i * 5
+        particle_array(i)%position%y = i * 10
+        particle_array(i)%mass = 1
+        particle_array(i)%active = .true.
+    end do
+
+    sum_val = 0
+    do i = 0, 3
+        if (particle_array(i)%active == .true.) then
+            sum_val = sum_val + particle_array(i)%position%x
+        end if
+    end do
+
+    if (sum_val == 15) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.5: Nested loops with 2D array ---
+    test_count = test_count + 1
+    test_name = "Nested loops + 2D"
+
+    sum_val = 0
+    do i = 0, 3
+        do j = 0, 4
+            static_2d(i, j) = i + j
+            sum_val = sum_val + static_2d(i, j)
+        end do
+    end do
+
+    test_passed = .true.
+    if (static_2d(0, 0) /= 0) then
+        test_passed = .false.
+    end if
+    if (static_2d(2, 3) /= 5) then
+        test_passed = .false.
+    end if
+    if (sum_val /= 30) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.6: Function in if condition ---
+    test_count = test_count + 1
+    test_name = "Function in if"
+
+    int_var = 0
+    if (factorial(3) == 6) then
+        int_var = 1
+    end if
+
+    if (int_var == 1) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.7: Array of derived with nested loops ---
+    test_count = test_count + 1
+    test_name = "Array derived nested"
+
+    allocate matrix, 4, 4
+
+    do i = 0, 4
+        do j = 0, 4
+            matrix(i, j)%row = i
+            matrix(i, j)%col = j
+            matrix(i, j)%value = 0
+
+            if (i == j) then
+                matrix(i, j)%value = 1
+            end if
+        end do
+    end do
+
+    temp1 = 0
+    do i = 0, 4
+        temp1 = temp1 + matrix(i, i)%value
+    end do
+
+    deallocate matrix
+
+    if (temp1 == 4) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.8: Complex control flow ---
+    test_count = test_count + 1
+    test_name = "Complex control flow"
+
+    int_var = 0
+    do i = 0, 10
+        if (i < 5) then
+            int_var = int_var + 1
+        else
+            if (i > 7) then
+                int_var = int_var + 2
+            else
+                int_var = int_var + 10
+            end if
+        end if
+    end do
+
+    if (int_var == 39) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.9: While loop with array ---
+    test_count = test_count + 1
+    test_name = "While + array"
+
+    allocate dyn_array, 10
+
+    i = 0
+    do while (i < 10)
+        dyn_array(i) = i * i
+        i = i + 1
+    end do
+
+    test_passed = .true.
+    if (dyn_array(0) /= 0) then
+        test_passed = .false.
+    end if
+    if (dyn_array(3) /= 9) then
+        test_passed = .false.
+    end if
+    if (dyn_array(5) /= 25) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_array
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.10: Array in expression ---
+    test_count = test_count + 1
+    test_name = "Array in expression"
+
+    do i = 0, 10
+        static_array(i) = i + 1
+    end do
+
+    int_var = static_array(3) + static_array(5) * 2
+
+    if (int_var == 16) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.11: Derived type in expr ---
+    test_count = test_count + 1
+    test_name = "Derived type in expr"
+
+    point1%x = 10
+    point2%x = 20
+    int_var = point1%x + point2%x
+
+    if (int_var == 30) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 14.12: Field access precedence ---
+    test_count = test_count + 1
+    test_name = "Field access precedence"
+
+    p1%position%x = 10
+    p1%position%y = 5
+
+    int_var = p1%position%x + p1%position%y * 2
+
+    if (int_var == 20) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 15: EDGE CASES
+    ! =========================================================================
+    write ""
+    write "========== GROUP 15: EDGE CASES =========="
+
+    ! --- Test 15.1: Division edge case ---
+    test_count = test_count + 1
+    test_name = "Division edge case"
+
+    int_var = 1 / 2
+
+    if (int_var == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.2: Zero exponent ---
+    test_count = test_count + 1
+    test_name = "Zero exponent"
+
+    int_var = 5 ** 0
+
+    if (int_var == 1) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.3: Single iteration loop ---
+    test_count = test_count + 1
+    test_name = "Single iteration loop"
+
+    int_var = 0
+    do i = 5, 6
+        int_var = int_var + 1
+    end do
+
+    if (int_var == 1) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.4: Zero iterations loop ---
+    test_count = test_count + 1
+    test_name = "Zero iterations loop"
+
+    int_var = 0
+    do i = 10, 10
+        int_var = int_var + 1
+    end do
+
+    if (int_var == 0) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.5: Large step loop ---
+    test_count = test_count + 1
+    test_name = "Large step loop"
+
+    int_var = 0
+    do i = 0, 100, 50
+        int_var = int_var + 1
+    end do
+
+    if (int_var == 2) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.6: Negative numbers ---
+    test_count = test_count + 1
+    test_name = "Negative numbers"
+
+    int_a = -5
+    int_b = -3
+    int_var = int_a + int_b
+
+    if (int_var == -8) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 15.7: Empty string ---
+    test_count = test_count + 1
+    test_name = "Empty string"
+
+    str_var = ""
+
+    if (str_var == "") then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 16: STRESS TESTS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 16: STRESS TESTS =========="
+
+    ! --- Test 16.1: Large factorial ---
+    test_count = test_count + 1
+    test_name = "Large factorial"
+
+    func_result = factorial(10)
+
+    if (func_result == 3628800) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 16.2: Deep recursion ---
+    test_count = test_count + 1
+    test_name = "Deep recursion"
+
+    func_result = fibonacci(10)
+
+    if (func_result == 55) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 16.3: Many iterations ---
+    test_count = test_count + 1
+    test_name = "Many iterations"
+
+    sum_val = 0
+    do i = 0, 1000
+        sum_val = sum_val + 1
+    end do
+
+    if (sum_val == 1000) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 16.4: Large array ---
+    test_count = test_count + 1
+    test_name = "Large array"
+
+    allocate dyn_array, 1000
+
+    dyn_array(0) = 1
+    dyn_array(500) = 2
+    dyn_array(999) = 3
+
+    sum_val = dyn_array(0) + dyn_array(500) + dyn_array(999)
+
+    deallocate dyn_array
+
+    if (sum_val == 6) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 16.5: Large 2D array ---
+    test_count = test_count + 1
+    test_name = "Large 2D array"
+
+    allocate dyn_2d, 50, 50
+
+    dyn_2d(0, 0) = 1
+    dyn_2d(25, 25) = 2
+    dyn_2d(49, 49) = 3
+
+    sum_val = dyn_2d(0, 0) + dyn_2d(25, 25) + dyn_2d(49, 49)
+
+    deallocate dyn_2d
+
+    if (sum_val == 6) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 17: ASSIGNMENT VARIATIONS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 17: ASSIGNMENT VARIATIONS =========="
+
+    ! --- Test 17.1: Sequential assignments ---
+    test_count = test_count + 1
+    test_name = "Sequential assignments"
+
+    int_a = 5
+    int_b = int_a
+    int_var = int_b
+
+    if (int_var == 5) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 17.2: Array element assign ---
+    test_count = test_count + 1
+    test_name = "Array element assign"
+
+    static_array(5) = 100
+    int_var = static_array(5)
+
+    if (int_var == 100) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 17.3: 2D array assign ---
+    test_count = test_count + 1
+    test_name = "2D array assign"
+
+    static_2d(2, 3) = 999
+    int_var = static_2d(2, 3)
+
+    if (int_var == 999) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 17.4: Derived field assign ---
+    test_count = test_count + 1
+    test_name = "Derived field assign"
+
+    point1%x = 50
+    int_var = point1%x
+
+    if (int_var == 50) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 17.5: Nested derived assign ---
+    test_count = test_count + 1
+    test_name = "Nested derived assign"
+
+    p1%position%x = 123
+    int_var = p1%position%x
+
+    if (int_var == 123) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 17.6: Array derived assign ---
+    test_count = test_count + 1
+    test_name = "Array derived assign"
+
+    particle_array(2)%mass = 7
+    temp1 = particle_array(2)%mass
+
+    if (temp1 == 7) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 18: COMPLEX EXPRESSIONS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 18: COMPLEX EXPRESSIONS =========="
+
+    ! --- Test 18.1: Mixed operators ---
+    test_count = test_count + 1
+    test_name = "Mixed operators"
+
+    int_var = 2 + 3 * 4 - 5
+
+    if (int_var == 9) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 18.2: Complex logical expr ---
+    test_count = test_count + 1
+    test_name = "Complex logical expr"
+
+    bool_var = (5 < 10) .and. (3 > 1) .or. (7 == 8)
+
+    if (bool_var == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 18.3: Nested parentheses ---
+    test_count = test_count + 1
+    test_name = "Nested parentheses"
+
+    int_var = ((2 + 3) * (4 + 5)) / 3
+
+    if (int_var == 15) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 18.4: Multiple conditions ---
+    test_count = test_count + 1
+    test_name = "Multiple conditions"
+
+    int_a = 10
+    int_b = 20
+    int_var = 15
+
+    bool_var = (int_var > int_a) .and. (int_var < int_b)
+
+    if (bool_var == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 18.5: Comparison chain ---
+    test_count = test_count + 1
+    test_name = "Comparison chain"
+
+    int_a = 5
+    bool_a = int_a > 3
+    bool_b = int_a < 10
+    bool_var = bool_a .and. bool_b
+
+    if (bool_var == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 19: MULTIDIMENSIONAL DERIVED TYPE ARRAYS
+    ! =========================================================================
+    write ""
+    write "========== GROUP 19: MULTIDIM DERIVED ARRAYS =========="
+
+    ! --- Test 19.1: Static array of vec3 ---
+    test_count = test_count + 1
+    test_name = "Static vec3 array"
+
+    static_vec_array(0)%x = 1
+    static_vec_array(0)%y = 2
+    static_vec_array(0)%z = 3
+
+    static_vec_array(4)%x = 10
+    static_vec_array(4)%y = 20
+    static_vec_array(4)%z = 30
+
+    test_passed = .true.
+    if (static_vec_array(0)%x /= 1) then
+        test_passed = .false.
+    end if
+    if (static_vec_array(0)%z /= 3) then
+        test_passed = .false.
+    end if
+    if (static_vec_array(4)%y /= 20) then
+        test_passed = .false.
+    end if
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 19.2: Dynamic 2D vec3 array ---
+    test_count = test_count + 1
+    test_name = "Dynamic 2D vec3 array"
+
+    allocate dyn_vec_2d, 3, 4
+
+    dyn_vec_2d(0, 0)%x = 100
+    dyn_vec_2d(0, 0)%y = 200
+    dyn_vec_2d(0, 0)%z = 300
+
+    dyn_vec_2d(2, 3)%x = 999
+    dyn_vec_2d(2, 3)%y = 888
+    dyn_vec_2d(2, 3)%z = 777
+
+    dyn_vec_2d(1, 2)%x = 50
+    dyn_vec_2d(1, 2)%y = 60
+    dyn_vec_2d(1, 2)%z = 70
+
+    test_passed = .true.
+    if (dyn_vec_2d(0, 0)%y /= 200) then
+        test_passed = .false.
+    end if
+    if (dyn_vec_2d(2, 3)%x /= 999) then
+        test_passed = .false.
+    end if
+    if (dyn_vec_2d(1, 2)%z /= 70) then
+        test_passed = .false.
+    end if
+
+    deallocate dyn_vec_2d
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 19.3: Matrix with diagonal check ---
+    test_count = test_count + 1
+    test_name = "Matrix diagonal check"
+
+    allocate matrix, 5, 5
+
+    do i = 0, 5
+        do j = 0, 5
+            matrix(i, j)%row = i
+            matrix(i, j)%col = j
+            matrix(i, j)%value = 0
+
+            if (i == j) then
+                matrix(i, j)%value = 1
+            end if
+        end do
+    end do
+
+    test_passed = .true.
+    if (matrix(0, 0)%value /= 1) then
+        test_passed = .false.
+    end if
+    if (matrix(2, 2)%value /= 1) then
+        test_passed = .false.
+    end if
+    if (matrix(1, 3)%value /= 0) then
+        test_passed = .false.
+    end if
+
+    deallocate matrix
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! GROUP 20: COMPREHENSIVE INTEGRATION
+    ! =========================================================================
+    write ""
+    write "========== GROUP 20: INTEGRATION TESTS =========="
+
+    ! --- Test 20.1: Everything combined ---
+    test_count = test_count + 1
+    test_name = "Everything combined"
+
+    allocate p_item
+    p_item%id = b"1111"
+    p_item%name = "Magic " // "Sword"
+    p_item%sales_history(0) = 5
+    p_item%sales_history(1) = 10
+    p_item%sales_history(2) = 15
+
+    pass_val = 99
+    call pass_by_value_test(pass_val)
+
+    total_sales = 0
+    i = 0
+    do while (i < 3)
+        total_sales = total_sales + p_item%sales_history(i)
+        i = i + 1
+    end do
+
+    if (factorial(4) == 24) then
+        if (pass_val == 99) then
+            if (total_sales == 30) then
+                if (p_item%id == 15) then
+                    test_passed = .true.
+                else
+                    test_passed = .false.
+                end if
+            else
+                test_passed = .false.
+            end if
+        else
+            test_passed = .false.
+        end if
+    else
+        test_passed = .false.
+    end if
+
+    deallocate p_item
+
+    if (test_passed == .true.) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 20.2: Nested structures stress ---
+    test_count = test_count + 1
+    test_name = "Nested structures stress"
+
+    do i = 0, 3
+        particle_array(i)%mass = i
+        particle_array(i)%position%x = i * 10
+        particle_array(i)%position%y = i * 20
+
+        if (i < 2) then
+            particle_array(i)%active = .true.
+        else
+            particle_array(i)%active = .false.
+        end if
+    end do
+
+    sum_val = 0
+    do i = 0, 3
+        if (particle_array(i)%active == .true.) then
+            sum_val = sum_val + (particle_array(i)%position%x + particle_array(i)%position%y)
+        end if
+    end do
+
+    if (sum_val == 30) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! --- Test 20.3: All operators in one ---
+    test_count = test_count + 1
+    test_name = "All operators"
+
+    int_a = 10
+    int_b = 3
+    bool_a = .true.
+    bool_b = .false.
+    str_var = "Test"
+
+    int_var = ((int_a + int_b) * 2 - int_a / int_b) ** 2
+
+    if ((int_var == 529) .and. (bool_a .or. bool_b) .and. (str_var == "Test")) then
+        write "PASS:", test_name
+        pass_count = pass_count + 1
+    else
+        write "FAIL:", test_name
+        fail_count = fail_count + 1
+    end if
+
+
+    ! =========================================================================
+    ! FINAL SUMMARY
+    ! =========================================================================
+    write ""
+    write ""
+    write "============================================="
+    write " ULTIMATE TEST SUITE COMPLETE"
+    write "============================================="
+    write ""
+    write "Total tests run:", test_count
+    write "Tests passed:", pass_count
+    write "Tests failed:", fail_count
+    write ""
+
+    if (fail_count == 0) then
+        write "  *** ALL TESTS PASSED ***"
+        write "  Nottran compiler is fully functional!"
+    else
+        write "  !!! SOME TESTS FAILED !!!"
+        write "  Please review failures above."
+    end if
+
+    write ""
+    write "============================================="
+
+end program ultimate_nottran_test

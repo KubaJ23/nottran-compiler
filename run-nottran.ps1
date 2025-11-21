@@ -1,1 +1,1 @@
-.\triangle-abstract-machine-main\build\src\tam.exe .\src\test\examples-output\output.tam
+.\triangle-abstract-machine-main\build\app\Debug\tam.exe .\src\test\examples-output\output.tam

@@ -43,7 +43,9 @@
 ///
 /// @param filename name of file to read from
 /// @return a vector of 32-bit code words
-static std::vector<uint32_t> ReadProgramFromFile(const std::string &filename) {
+/// @throws std::runtime_error if the file did not contain a multiple of 4
+/// number of bytes
+static std::vector<uint32_t> ReadProgramFromFile(const std::string& filename) {
     std::ifstream in_stream(filename, std::ios::binary);
 
     // find file size
@@ -83,11 +85,21 @@ static void PrintHelpMessage() {
               << "  -h,--help         print this help message" << std::endl;
 }
 
-static bool CpuCycle(tam::TamEmulator &emulator, bool trace, bool step) {
+/// Execute a single fetch-decode-execute cycle on the given emulator.
+///
+/// @param emulator emulator to run
+/// @param trace if `true` print a memory trace before returning
+/// @param step if `true` wait for key press from user before returning
+/// @return `true` if execution should continue, `false` if not
+static bool CpuCycle(tam::TamEmulator& emulator, bool trace, bool step) {
     const tam::TamInstruction Instr = emulator.FetchDecode();
     bool running = emulator.Execute(Instr);
 
-    if (trace) std::cout << emulator.GetSnapshot() << std::endl;
+    if (trace) {
+        // We might like to print the location of this instruction but we don't know it here.
+        std::cout << std::endl << tam::GetMnemonic(Instr) << std::endl;
+        std::cout << emulator.GetSnapshot();
+    }
 
     if (trace && step) {
         std::string buf;
@@ -97,7 +109,7 @@ static bool CpuCycle(tam::TamEmulator &emulator, bool trace, bool step) {
     return running;
 }
 
-int main(int argc, const char **argv) {
+int main(int argc, const char** argv) {
     std::unique_ptr<CliArgs> args = ParseCli(argc - 1, argv + 1);
     if (!args) {
         PrintHelpMessage();
@@ -119,7 +131,7 @@ int main(int argc, const char **argv) {
     try {
         std::vector<uint32_t> program = ReadProgramFromFile(args->filename);
         emulator.LoadProgram(program);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return 2;
     }
@@ -128,7 +140,7 @@ int main(int argc, const char **argv) {
     do {
         try {
             running = CpuCycle(emulator, args->trace, args->step);
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 3;
         }

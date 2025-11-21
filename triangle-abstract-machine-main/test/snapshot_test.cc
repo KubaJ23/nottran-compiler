@@ -12,6 +12,6 @@ TEST_F(EmulatorTest, GetSnapshotTest) {
 
     std::string snapshot = this->GetSnapshot();
     std::string expected_snapshot =
-        "stack\n007b 01c8 0315 2b68 2c97 \nheap fffd\n00f6 1fb0 0588 ";
+        "Stack\n007b 01c8 0315 2b68 2c97 \nHeap fffd\n00f6 1fb0 0588 ";
     EXPECT_EQ(expected_snapshot, snapshot);
 }

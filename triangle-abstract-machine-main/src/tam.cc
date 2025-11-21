@@ -18,7 +18,7 @@
 //
 /// @file tam.cc
 /// This file defines all methods of `TamEmulator` except for `Allocate`,
-/// `free`, and the methods for executing primitive operations.
+/// `Free`, and the methods for executing primitive operations.
 //
 //===-----------------------------------------------------------------------===//
 
@@ -37,22 +37,13 @@
 #include "tam/error.h"
 
 namespace tam {
-TamEmulator::TamEmulator() {
-    this->code_store_.fill(0);
-    this->data_store_.fill(0);
-    this->registers_.fill(0);
-
-    this->registers_[HB] = kMaxAddr;
-    this->registers_[HT] = kMaxAddr;
-
-    this->instream_ = stdin;
-    this->outstream_ = stdout;
-}
 
 TamEmulator::TamEmulator(FILE* instream, FILE* outstream) {
     if (!(instream && outstream)) {
         throw IoError("NULL passed for input or output");
     }
+    this->instream_ = instream;
+    this->outstream_ = outstream;
 
     this->code_store_.fill(0);
     this->data_store_.fill(0);
@@ -60,9 +51,6 @@ TamEmulator::TamEmulator(FILE* instream, FILE* outstream) {
 
     this->registers_[HB] = kMaxAddr;
     this->registers_[HT] = kMaxAddr;
-
-    this->instream_ = instream;
-    this->outstream_ = outstream;
 }
 
 void TamEmulator::LoadProgram(const std::vector<TamCode>& program) {
@@ -114,53 +102,53 @@ TamData TamEmulator::PopData() {
 
 bool TamEmulator::Execute(TamInstruction instr) {
     switch (instr.op) {
-        case 0:  // LOAD
+        case LOAD:
             this->ExecuteLoad(instr);
             break;
-        case 1:  // LOADA
+        case LOADA:
             this->ExecuteLoada(instr);
             break;
-        case 2:  // LOADI
+        case LOADI:
             this->ExecuteLoadi(instr);
             break;
-        case 3:  // LOADL
+        case LOADL:
             this->ExecuteLoadl(instr);
             break;
-        case 4:  // STORE
+        case STORE:
             this->ExecuteStore(instr);
             break;
-        case 5:  // STOREI
+        case STOREI:
             this->ExecuteStorei(instr);
             break;
-        case 6:  // CALL
+        case CALL:
             if (instr.r == PB && instr.d > 0 && instr.d < 29) {
                 this->ExecuteCallPrimitive(instr);
             } else {
                 this->ExecuteCall(instr);
             }
             break;
-        case 7:  // CALLI
+        case CALLI:
             this->ExecuteCalli(instr);
             break;
-        case 8:  // RETURN
+        case RETURN:
             this->ExecuteReturn(instr);
             break;
-        case 10:  // PUSH
+        case PUSH:
             this->ExecutePush(instr);
             break;
-        case 11:  // POP
+        case POP:
             this->ExecutePop(instr);
             break;
-        case 12:  // JUMP
+        case JUMP:
             this->ExecuteJump(instr);
             break;
-        case 13:  // JUMPI
+        case JUMPI:
             this->ExecuteJumpi(instr);
             break;
-        case 14:  // JUMPIF
+        case JUMPIF:
             this->ExecuteJumpif(instr);
             break;
-        case 15:  // HALT
+        case HALT:
             return false;
         default:
             throw RuntimeError(ExceptionKind::kUnknownOpcode,
@@ -171,9 +159,10 @@ bool TamEmulator::Execute(TamInstruction instr) {
 
 const std::string TamEmulator::GetSnapshot() const {
     std::stringstream ss;
+
     ss << std::hex << std::setfill('0');
 
-    ss << "stack";
+    ss << "Stack";
     for (int I = 0; I < this->registers_[ST]; ++I) {
         if (I % 8 == 0) ss << std::endl;
         ss << std::setw(4) << this->data_store_[I] << " ";
@@ -181,7 +170,7 @@ const std::string TamEmulator::GetSnapshot() const {
     ss << std::endl;
 
     for (auto Block : this->allocated_blocks_) {
-        ss << "heap " << std::setw(4) << Block.first;
+        ss << "Heap " << std::setw(4) << Block.first;
         for (int I = 0; I < Block.second; ++I) {
             if (I % 8 == 0) {
                 ss << std::endl;
@@ -398,6 +387,64 @@ void TamEmulator::ExecuteJumpif(TamInstruction instr) {
 
     this->registers_[CP] = addr;
     assert(this->registers_[CP] == addr);
+}
+
+std::string GetMnemonic(TamInstruction instr) {
+    std::stringstream ss;
+    switch (instr.op) {
+        case LOAD:
+        case STORE:
+        case CALL:
+        case JUMPIF:
+            // CALL put
+            if (instr.op == CALL && instr.r == PB) {
+                ss << "CALL " << primitive_names[instr.d];
+                return ss.str();
+            }
+
+            // OPCODE(n) d[r]
+            ss << opcode_names[instr.op] << "(" << instr.n << ") " << instr.d
+               << "[" << register_names[instr.r] << "]";
+            return ss.str();
+
+        case LOADA:
+        case JUMP:
+            // OPCODE d[r]
+            ss << opcode_names[instr.op] << " " << instr.d << "["
+               << register_names[instr.r] << "]";
+            return ss.str();
+
+        case RETURN:
+        case POP:
+            // OPCODE(n) d
+            ss << opcode_names[instr.op] << "(" << instr.n << ") " << instr.d;
+            return ss.str();
+
+        case LOADI:
+        case STOREI:
+            // OPCODE (n)
+            ss << opcode_names[instr.op] << " (" << instr.n << ")";
+            return ss.str();
+
+        case LOADL:
+        case PUSH:
+            // OPCODE d
+            ss << opcode_names[instr.op] << " " << instr.d;
+            return ss.str();
+
+        case CALLI:
+        case JUMPI:
+        case HALT:
+            // OPCODE
+            return opcode_names[instr.op];
+
+        default:
+            return "INVALID";
+    }
+}
+
+inline std::ostream& operator<<(std::ostream& os, uint8_t v) {
+    return os << static_cast<unsigned int>(v);
 }
 
 }  // namespace tam

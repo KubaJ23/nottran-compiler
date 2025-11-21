@@ -1,0 +1,746 @@
+! =============================================================================
+! NOTTRAN I/O TEST SUITE - READ AND WRITE OPERATIONS
+! =============================================================================
+! Comprehensive testing of read and write statements:
+! - Reading integers, characters, logical values
+! - Writing integers, characters, logical values
+! - Reading into arrays
+! - Writing from arrays
+! - Reading into derived types
+! - Writing from derived types
+! - Multiple values in single read/write
+! - Mixed types in write statements
+! - Edge cases and combinations
+! =============================================================================
+
+! --- DERIVED TYPE DEFINITIONS ---
+
+type coord
+    integer :: x, y
+end type coord
+
+type person
+    integer :: id
+    character :: name
+    logical :: active
+end type person
+
+type data_record
+    integer :: code
+    character :: label
+    integer(3) :: values
+end type data_record
+
+
+! --- UTILITY FUNCTIONS ---
+
+function sum_array(arr, size) result(total)
+    integer(*) pointer :: arr
+    integer :: size, total
+    integer :: i
+
+    total = 0
+    do i = 0, size
+        total = total + arr(i)
+    end do
+end function sum_array
+
+
+! --- MAIN TEST PROGRAM ---
+
+program io_test_suite
+    ! === VARIABLE DECLARATIONS ===
+
+    ! Basic types
+    integer :: int_val, int_a, int_b, int_c
+    character :: char_val, str_a, str_b
+    logical :: bool_val, bool_a, bool_b
+
+    ! Arrays
+    integer(5) :: int_array
+    character(3) :: char_array
+    logical(4) :: bool_array
+    integer(2, 3) :: matrix_2d
+
+    ! Dynamic arrays
+    integer(*) pointer :: dyn_array
+    character(*) pointer :: dyn_chars
+
+    ! Derived types
+    type(coord) :: point
+    type(person) :: pers
+    type(data_record) :: record
+    type(person)(3) :: person_array
+
+    ! Loop counters
+    integer :: i, j
+    integer :: test_count
+
+
+    ! === INITIALIZATION ===
+    test_count = 0
+
+    write "============================================="
+    write " NOTTRAN I/O TEST SUITE"
+    write " Testing READ and WRITE operations"
+    write "============================================="
+    write ""
+    write "Instructions: Enter values as prompted"
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 1: BASIC READ OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 1: BASIC READ OPERATIONS =========="
+    write ""
+
+    ! --- Test 1.1: Read single integer ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading single integer"
+    write "Enter an integer (e.g., 42):"
+    read int_val
+    write "You entered:", int_val
+    write ""
+
+
+    ! --- Test 1.2: Read multiple integers ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading multiple integers"
+    write "Enter first integer (e.g., 10):"
+    read int_a
+    write "Enter second integer (e.g., 20):"
+    read int_b
+    write "Enter third integer (e.g., 30):"
+    read int_c
+    write "You entered:", int_a, int_b, int_c
+    write ""
+
+
+    ! --- Test 1.3: Read single character ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading single character"
+    write "Enter a character (e.g., X):"
+    read char_val
+    write "You entered:", char_val
+    write ""
+
+
+    ! --- Test 1.4: Read string ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading string"
+    write "Enter a string (e.g., Hello):"
+    read str_a
+    write "You entered:", str_a
+    write ""
+
+
+    ! --- Test 1.5: Read logical value ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading logical value"
+    write "Enter a logical value (.true. or .false.):"
+    read bool_val
+    write "You entered:", bool_val
+    write ""
+
+
+    ! --- Test 1.6: Read with immediate use ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading with immediate arithmetic"
+    write "Enter two integers for addition (e.g., 5 and 7):"
+    read int_a
+    read int_b
+    int_c = int_a + int_b
+    write "Sum:", int_c
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 2: BASIC WRITE OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 2: BASIC WRITE OPERATIONS =========="
+    write ""
+
+    ! --- Test 2.1: Write single integer ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing single integer"
+    int_val = 100
+    write "Integer value:", int_val
+    write ""
+
+
+    ! --- Test 2.2: Write multiple integers ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing multiple integers"
+    int_a = 10
+    int_b = 20
+    int_c = 30
+    write "Three integers:", int_a, int_b, int_c
+    write ""
+
+
+    ! --- Test 2.3: Write literal and variable ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing literal with variable"
+    int_val = 42
+    write "The answer is:", int_val
+    write ""
+
+
+    ! --- Test 2.4: Write expression results ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing expression results"
+    int_a = 5
+    int_b = 7
+    write "5 + 7 =", int_a + int_b
+    write "5 * 7 =", int_a * int_b
+    write "7 - 5 =", int_b - int_a
+    write ""
+
+
+    ! --- Test 2.5: Write characters ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing characters"
+    char_val = "A"
+    str_a = "Hello"
+    str_b = "World"
+    write "Single char:", char_val
+    write "Two strings:", str_a, str_b
+    write ""
+
+
+    ! --- Test 2.6: Write logical values ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing logical values"
+    bool_a = .true.
+    bool_b = .false.
+    write "True value:", bool_a
+    write "False value:", bool_b
+    write "Both:", bool_a, bool_b
+    write ""
+
+
+    ! --- Test 2.7: Write mixed types ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing mixed types"
+    int_val = 42
+    char_val = "Answer"
+    bool_val = .true.
+    write "Mixed:", int_val, char_val, bool_val
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 3: ARRAY READ OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 3: ARRAY READ OPERATIONS =========="
+    write ""
+
+    ! --- Test 3.1: Read into 1D array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into 1D array (5 elements)"
+    write "Enter 5 integers (one at a time):"
+    do i = 0, 5
+        write "  Element", i, ":"
+        read int_array(i)
+    end do
+    write "Array contents:"
+    do i = 0, 5
+        write "  [", i, "] =", int_array(i)
+    end do
+    write ""
+
+
+    ! --- Test 3.2: Read into character array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into character array"
+    write "Enter 3 strings:"
+    do i = 0, 3
+        write "  String", i, ":"
+        read char_array(i)
+    end do
+    write "Character array:"
+    do i = 0, 3
+        write "  [", i, "] =", char_array(i)
+    end do
+    write ""
+
+
+    ! --- Test 3.3: Read into logical array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into logical array"
+    write "Enter 4 logical values:"
+    do i = 0, 4
+        write "  Bool", i, ":"
+        read bool_array(i)
+    end do
+    write "Logical array:"
+    do i = 0, 4
+        write "  [", i, "] =", bool_array(i)
+    end do
+    write ""
+
+
+    ! --- Test 3.4: Read into 2D array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into 2D array (2x3)"
+    write "Enter 6 integers for 2x3 matrix:"
+    do i = 0, 2
+        do j = 0, 3
+            write "  Element [", i, ",", j, "]:"
+            read matrix_2d(i, j)
+        end do
+    end do
+    write "Matrix contents:"
+    do i = 0, 2
+        do j = 0, 3
+            write "  [", i, ",", j, "] =", matrix_2d(i, j)
+        end do
+    end do
+    write ""
+
+
+    ! --- Test 3.5: Read into dynamic array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into dynamic array"
+    allocate dyn_array, 4
+    write "Enter 4 integers for dynamic array:"
+    do i = 0, 4
+        write "  Element", i, ":"
+        read dyn_array(i)
+    end do
+    write "Dynamic array:"
+    do i = 0, 4
+        write "  [", i, "] =", dyn_array(i)
+    end do
+    write "Sum of array:", sum_array(dyn_array, 4)
+    deallocate dyn_array
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 4: ARRAY WRITE OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 4: ARRAY WRITE OPERATIONS =========="
+    write ""
+
+    ! --- Test 4.1: Write from 1D array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from 1D array"
+    do i = 0, 5
+        int_array(i) = i * 10
+    end do
+    write "Array (using loop):"
+    do i = 0, 5
+        write "  ", int_array(i)
+    end do
+    write ""
+
+
+    ! --- Test 4.2: Write array elements inline ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing array elements inline"
+    write "First three elements:", int_array(0), int_array(1), int_array(2)
+    write ""
+
+
+    ! --- Test 4.3: Write from 2D array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from 2D array"
+    do i = 0, 2
+        do j = 0, 3
+            matrix_2d(i, j) = (i * 10) + j
+        end do
+    end do
+    write "Matrix in row-major order:"
+    do i = 0, 2
+        write "Row", i, ":"
+        do j = 0, 3
+            write "  ", matrix_2d(i, j)
+        end do
+    end do
+    write ""
+
+
+    ! --- Test 4.4: Write from dynamic array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from dynamic array"
+    allocate dyn_array, 6
+    do i = 0, 6
+        dyn_array(i) = i * i
+    end do
+    write "Squares:"
+    do i = 0, 6
+        write "  ", i, "^2 =", dyn_array(i)
+    end do
+    deallocate dyn_array
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 5: DERIVED TYPE READ OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 5: DERIVED TYPE READ =========="
+    write ""
+
+    ! --- Test 5.1: Read into derived type fields ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into derived type"
+    write "Enter coordinates:"
+    write "  X coordinate:"
+    read point%x
+    write "  Y coordinate:"
+    read point%y
+    write "Point:", point%x, point%y
+    write ""
+
+
+    ! --- Test 5.2: Read into nested derived type ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into person record"
+    write "Enter person details:"
+    write "  ID (integer):"
+    read pers%id
+    write "  Name (string):"
+    read pers%name
+    write "  Active (logical):"
+    read pers%active
+    write "Person record:"
+    write "  ID:", pers%id
+    write "  Name:", pers%name
+    write "  Active:", pers%active
+    write ""
+
+
+    ! --- Test 5.3: Read into derived type with array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into derived type with array"
+    write "Enter data record:"
+    write "  Code:"
+    read record%code
+    write "  Label:"
+    read record%label
+    write "Enter 3 values:"
+    do i = 0, 3
+        write "  Value", i, ":"
+        read record%values(i)
+    end do
+    write "Record summary:"
+    write "  Code:", record%code
+    write "  Label:", record%label
+    write "  Values:", record%values(0), record%values(1), record%values(2)
+    write ""
+
+
+    ! --- Test 5.4: Read into array of derived types ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Reading into array of derived types"
+    write "Enter 3 person records:"
+    do i = 0, 3
+        write "Person", i, ":"
+        write "  ID:"
+        read person_array(i)%id
+        write "  Name:"
+        read person_array(i)%name
+        write "  Active:"
+        read person_array(i)%active
+    end do
+    write "All person records:"
+    do i = 0, 3
+        write "Person", i, ":", person_array(i)%id, person_array(i)%name, person_array(i)%active
+    end do
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 6: DERIVED TYPE WRITE OPERATIONS
+    ! =========================================================================
+    write "========== GROUP 6: DERIVED TYPE WRITE =========="
+    write ""
+
+    ! --- Test 6.1: Write from derived type ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from derived type"
+    point%x = 100
+    point%y = 200
+    write "Point coordinates:", point%x, point%y
+    write ""
+
+
+    ! --- Test 6.2: Write from person record ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from person record"
+    pers%id = 1001
+    pers%name = "Alice"
+    pers%active = .true.
+    write "Employee:", pers%id, pers%name, pers%active
+    write ""
+
+
+    ! --- Test 6.3: Write from derived type with array ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from derived type with array"
+    record%code = 42
+    record%label = "Test"
+    record%values(0) = 10
+    record%values(1) = 20
+    record%values(2) = 30
+    write "Record:", record%code, record%label
+    write "Values:", record%values(0), record%values(1), record%values(2)
+    write ""
+
+
+    ! --- Test 6.4: Write from array of derived types ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Writing from array of derived types"
+    do i = 0, 3
+        person_array(i)%id = i * 100
+        person_array(i)%name = "User"
+        if (i < 2) then
+            person_array(i)%active = .true.
+        else
+            person_array(i)%active = .false.
+        end if
+    end do
+    write "Person directory:"
+    do i = 0, 3
+        write "  ", i, ":", person_array(i)%id, person_array(i)%name, person_array(i)%active
+    end do
+    write ""
+
+
+    ! =========================================================================
+    ! GROUP 7: COMPLEX I/O SCENARIOS
+    ! =========================================================================
+    write "========== GROUP 7: COMPLEX I/O SCENARIOS =========="
+    write ""
+
+    ! --- Test 7.1: Read-compute-write pipeline ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Read-compute-write pipeline"
+    write "Enter two numbers to multiply:"
+    read int_a
+    read int_b
+    int_c = int_a * int_b
+    write "Result:", int_a, "x", int_b, "=", int_c
+    write ""
+
+
+    ! --- Test 7.2: Array fill and sum ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Array fill and sum"
+    write "Enter 5 numbers to sum:"
+    allocate dyn_array, 5
+    do i = 0, 5
+        write "  Number", i, ":"
+        read dyn_array(i)
+    end do
+    int_val = sum_array(dyn_array, 5)
+    write "Sum:", int_val
+    deallocate dyn_array
+    write ""
+
+
+    ! --- Test 7.3: Matrix input and transpose display ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Matrix transpose display"
+    write "Enter 2x3 matrix:"
+    do i = 0, 2
+        do j = 0, 3
+            write "  [", i, ",", j, "]:"
+            read matrix_2d(i, j)
+        end do
+    end do
+    write "Original matrix:"
+    do i = 0, 2
+        do j = 0, 3
+            write "  ", matrix_2d(i, j)
+        end do
+    end do
+    write "Transposed view:"
+    do j = 0, 3
+        do i = 0, 2
+            write "  ", matrix_2d(i, j)
+        end do
+    end do
+    write ""
+
+
+    ! --- Test 7.4: Conditional read/write ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Conditional I/O"
+    write "Enter a number:"
+    read int_val
+    if (int_val > 0) then
+        write "Positive:", int_val
+    else
+        if (int_val < 0) then
+            write "Negative:", int_val
+        else
+            write "Zero:", int_val
+        end if
+    end if
+    write ""
+
+
+    ! --- Test 7.5: Loop with read/write ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Loop with I/O"
+    write "Enter count (0-10):"
+    read int_val
+    if (int_val >= 0) then
+        if (int_val <= 10) then
+            write "Counting to", int_val, ":"
+            do i = 0, int_val
+                write "  ", i
+            end do
+        else
+            write "Count too large (max 10)"
+        end if
+    else
+        write "Count must be non-negative"
+    end if
+    write ""
+
+
+    ! --- Test 7.6: Character concatenation with I/O ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": String concatenation"
+    write "Enter first word:"
+    read str_a
+    write "Enter second word:"
+    read str_b
+    char_val = str_a // " " // str_b
+    write "Combined:", char_val
+    write ""
+
+
+    ! --- Test 7.7: Logical operations with I/O ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Logical operations"
+    write "Enter two logical values:"
+    read bool_a
+    read bool_b
+    write "AND result:", bool_a .and. bool_b
+    write "OR result:", bool_a .or. bool_b
+    write ""
+
+
+    ! --- Test 7.8: Complex derived type workflow ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Complex derived type workflow"
+    write "Create a data record:"
+    write "  Code:"
+    read record%code
+    write "  Label:"
+    read record%label
+    write "Enter 3 measurements:"
+    do i = 0, 3
+        read record%values(i)
+    end do
+
+    int_val = 0
+    do i = 0, 3
+        int_val = int_val + record%values(i)
+    end do
+
+    write "Record Summary:"
+    write "  Code:", record%code
+    write "  Label:", record%label
+    write "  Total:", int_val
+    write "  Average:", int_val / 3
+    write ""
+
+
+    ! --- Test 7.9: Dynamic array with I/O ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Dynamic array sizing"
+    write "Enter array size (1-20):"
+    read int_val
+    if (int_val > 0) then
+        if (int_val <= 20) then
+            allocate dyn_array, int_val
+            write "Enter", int_val, "values:"
+            do i = 0, int_val
+                read dyn_array(i)
+            end do
+            write "Your array:"
+            do i = 0, int_val
+                write "  ", dyn_array(i)
+            end do
+            deallocate dyn_array
+        else
+            write "Size too large"
+        end if
+    else
+        write "Size must be positive"
+    end if
+    write ""
+
+
+    ! --- Test 7.10: Write expressions with literals ---
+    test_count = test_count + 1
+    write "Test", test_count
+    write ": Write complex expressions"
+    int_a = 5
+    int_b = 3
+    write "5 + 3 =", 5 + 3
+    write "Variables:", int_a, "+", int_b, "=", int_a + int_b
+    write "Expression:", (int_a + int_b) * 2, "= 2 * (5 + 3)"
+    write ""
+
+
+    ! =========================================================================
+    ! FINAL SUMMARY
+    ! =========================================================================
+    write ""
+    write "============================================="
+    write " I/O TEST SUITE COMPLETE"
+    write "============================================="
+    write ""
+    write "Total tests run:", test_count
+    write ""
+    write "All I/O operations completed successfully!"
+    write ""
+    write "============================================="
+
+end program io_test_suite
